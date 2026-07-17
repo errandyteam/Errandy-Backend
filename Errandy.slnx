@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/" />
+  <Folder Name="/src/">
+    <Project Path="Errandy.Api/Errandy.Api.csproj" />
+    <Project Path="Errandy.Application/Errandy.Application.csproj" />
+    <Project Path="Errandy.Domain/Errandy.Domain.csproj" />
+    <Project Path="Errandy.Infrastructure/Errandy.Infrastructure.csproj" />
+  </Folder>
+  <Project Path="Errandy.Tests/Errandy.Tests.csproj" />
+</Solution>
