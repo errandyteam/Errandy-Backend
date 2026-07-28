@@ -12,6 +12,5 @@
     <ProjectReference Include="..\Errandy.Domain\Errandy.Domain.csproj" />
     <ProjectReference Include="..\Errandy.Infrastructure\Errandy.Infrastructure.csproj" />
   </ItemGroup>
-
 	
 </Project>
