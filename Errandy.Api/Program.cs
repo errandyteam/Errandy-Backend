@@ -33,7 +33,7 @@ builder.Services.AddScoped<IApplicationDbContext>(sp =>
 
 builder.Services.AddSingleton<IBackgroundJobScheduler, FakeInProcessBackgroundJobScheduler>();
 
-// TEMPORARY — replace with real JWT auth once Engineer A ships it
+// TEMPORARY — replace with real JWT auth once Engineer A ships i
 builder.Services.AddAuthentication(TestAuthHandler.SchemeName)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(
         TestAuthHandler.SchemeName, options => { });
