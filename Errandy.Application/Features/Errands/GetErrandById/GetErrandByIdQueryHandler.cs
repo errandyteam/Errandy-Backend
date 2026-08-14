@@ -1,4 +1,5 @@
 ﻿using Errandy.Application.Common.Exceptions;
+using Errandy.Application.Common.Utils;
 using Errandy.Application.DTOs;
 using Errandy.Application.Interfaces;
 using Errandy.Domain.Enums;
@@ -25,14 +26,22 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
         if (errand is null)
             throw new NotFoundException(nameof(Domain.Entities.Errand), request.ErrandId);
 
-        // Parties (customer/assigned runner) can always view. Anyone else can
-        // only view while it's still open in the marketplace (Status == Created)
-        // — mirrors what GetNearbyErrands already shows, just with full detail.
-        var isParty = request.RequestingUserId == errand.CustomerId || request.RequestingUserId == errand.RunnerId;
+        var isCustomer = request.RequestingUserId == errand.CustomerId;
+        var isAssignedRunner = request.RequestingUserId == errand.RunnerId;
         var isOpenForBrowsing = errand.Status == ErrandStatus.Created;
 
-        if (!isParty && !isOpenForBrowsing)
+        if (!isCustomer && !isAssignedRunner && !isOpenForBrowsing)
             throw new ForbiddenAccessException("You do not have access to view this errand.");
+
+        // PRD 8: customer always sees their own exact address. The assigned
+        // runner sees exact only once they've actually accepted (RunnerId
+        // set). Anyone else browsing (only possible while still Created,
+        // per the check above) gets the fuzzed approximate location.
+        var showExactLocation = isCustomer || isAssignedRunner;
+
+        var (displayLat, displayLng) = showExactLocation
+            ? (errand.PickupLatitude, errand.PickupLongitude)
+            : LocationPrivacyHelper.Fuzz(errand.PickupLatitude, errand.PickupLongitude);
 
         return new ErrandDto
         {
@@ -44,14 +53,17 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
             Status = errand.Status,
             EstimatedCost = errand.EstimatedCost,
             FinalCost = errand.FinalCost,
-            PickupLatitude = errand.PickupLatitude,
-            PickupLongitude = errand.PickupLongitude,
+            PickupLatitude = displayLat,
+            PickupLongitude = displayLng,
+            IsExactLocation = showExactLocation,
             Deadline = errand.Deadline,
             CreatedAt = errand.CreatedAt,
             AcceptedAt = errand.AcceptedAt,
             StartedAt = errand.StartedAt,
             PendingConfirmationAt = errand.PendingConfirmationAt,
             CompletedAt = errand.CompletedAt,
+            TimePreference = errand.TimePreference,
+            IsOverdue = errand.IsOverdue(DateTime.UtcNow),
             Proof = errand.Proof is null ? null : new ProofDto
             {
                 Id = errand.Proof.Id,
@@ -59,6 +71,7 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
                 ReceiptUrl = errand.Proof.ReceiptUrl,
                 UploadedAt = errand.Proof.UploadedAt
             }
+
         };
     }
 }

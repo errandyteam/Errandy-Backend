@@ -50,4 +50,12 @@ public class FakeEscrowService : IEscrowService
             refundAmount, customerId, releaseToRunnerAmount, errandId);
         return Task.CompletedTask;
     }
+
+    public Task AdjustLockedFundsAsync(Guid errandId, Guid customerId, decimal oldAmount, decimal newAmount, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "[FAKE ESCROW] Would adjust locked funds for errand {ErrandId} from {OldAmount} to {NewAmount}",
+            errandId, oldAmount, newAmount);
+        return Task.CompletedTask;
+    }
 }

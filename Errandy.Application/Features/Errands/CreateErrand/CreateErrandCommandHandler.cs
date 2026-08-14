@@ -31,17 +31,13 @@ public class CreateErrandCommandHandler : IRequestHandler<CreateErrandCommand, G
             estimatedCost: request.EstimatedCost,
             pickupLatitude: request.PickupLatitude,
             pickupLongitude: request.PickupLongitude,
-            deadline: request.Deadline,
+            timePreference: request.TimePreference,
+            scheduledDeadline: request.ScheduledDeadline,
             utcNow: utcNow);
 
         _context.Errands.Add(errand);
-
-        // Save first so the Errand row exists before Engineer B's escrow
-        // system tries to reference ErrandId as a foreign key.
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Lock funds in escrow. Buffer calculation (10-20% per PRD 6.1) is
-        // Engineer B's responsibility inside the implementation of this method.
         await _escrowService.LockFundsAsync(errand.Id, request.CustomerId, request.EstimatedCost, cancellationToken);
 
         return errand.Id;

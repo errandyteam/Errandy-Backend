@@ -7,28 +7,24 @@ public class CreateErrandCommandValidator : AbstractValidator<CreateErrandComman
 {
     public CreateErrandCommandValidator()
     {
-        RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("CustomerId is required.");
-
-        RuleFor(x => x.Category)
-            .IsInEnum().WithMessage("A valid errand category is required.");
+        RuleFor(x => x.CustomerId).NotEmpty();
+        RuleFor(x => x.Category).IsInEnum();
 
         RuleFor(x => x.Description)
-            .NotEmpty().WithMessage("Description is required.")
-            .MaximumLength(1000).WithMessage("Description cannot exceed 1000 characters.");
+            .NotEmpty()
+            .MaximumLength(1000);
 
         RuleFor(x => x.EstimatedCost)
-            .GreaterThan(0).WithMessage("EstimatedCost must be greater than zero.");
+            .GreaterThan(0);
 
-        RuleFor(x => x.PickupLatitude)
-            .InclusiveBetween(-90, 90).WithMessage("PickupLatitude must be a valid latitude.");
+        RuleFor(x => x.PickupLatitude).InclusiveBetween(-90, 90);
+        RuleFor(x => x.PickupLongitude).InclusiveBetween(-180, 180);
 
-        RuleFor(x => x.PickupLongitude)
-            .InclusiveBetween(-180, 180).WithMessage("PickupLongitude must be a valid longitude.");
+        RuleFor(x => x.TimePreference).IsInEnum();
 
-        RuleFor(x => x.Deadline)
-            .GreaterThan(DateTime.UtcNow)
-            .When(x => x.Deadline.HasValue)
-            .WithMessage("Deadline must be in the future.");
+        RuleFor(x => x.ScheduledDeadline)
+            .NotNull().WithMessage("ScheduledDeadline is required when TimePreference is Scheduled.")
+            .GreaterThan(DateTime.UtcNow).WithMessage("ScheduledDeadline must be in the future.")
+            .When(x => x.TimePreference == ErrandTimePreference.Scheduled);
     }
 }

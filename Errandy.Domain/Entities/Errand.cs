@@ -3,16 +3,6 @@ using Errandy.Domain.Exceptions;
 
 namespace Errandy.Domain.Entities;
 
-/// <summary>
-/// Aggregate root for the errand lifecycle. All state transitions live here so
-/// that "Enforce valid transitions" (PRD requirement, Engineer C scope) can never
-/// be bypassed by calling code — Application layer handlers call these methods,
-/// they never set Status directly.
-///
-/// Note: this entity does NOT touch money. It raises the *intent* (via the
-/// IEscrowService contract, invoked from the command handlers) for Engineer B's
-/// wallet/escrow system to act on. Owning that boundary is what keeps C and B decoupled.
-/// </summary>
 public class Errand
 {
     public Guid Id { get; private set; }
@@ -30,6 +20,7 @@ public class Errand
     public double PickupLongitude { get; private set; }
 
     public DateTime? Deadline { get; private set; }
+    public ErrandTimePreference TimePreference { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
     public DateTime? AcceptedAt { get; private set; }
@@ -38,13 +29,16 @@ public class Errand
     public DateTime? CompletedAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
 
+    public decimal? ProposedCost { get; private set; }
+    public string? ProposedCostReason { get; private set; }
+    public DateTime? ProposedCostAt { get; private set; }
+
     private readonly List<Message> _messages = new();
     public IReadOnlyCollection<Message> Messages => _messages.AsReadOnly();
 
     public Proof? Proof { get; private set; }
     public Dispute? Dispute { get; private set; }
 
-    // EF Core requires a parameterless constructor.
     private Errand() { }
 
     public static Errand Create(
@@ -54,7 +48,8 @@ public class Errand
         decimal estimatedCost,
         double pickupLatitude,
         double pickupLongitude,
-        DateTime? deadline,
+        ErrandTimePreference timePreference,
+        DateTime? scheduledDeadline,
         DateTime utcNow)
     {
         if (customerId == Guid.Empty)
@@ -66,6 +61,20 @@ public class Errand
         if (estimatedCost <= 0)
             throw new ArgumentException("EstimatedCost must be greater than zero.", nameof(estimatedCost));
 
+        if (timePreference == ErrandTimePreference.Scheduled && scheduledDeadline is null)
+            throw new ArgumentException("A scheduledDeadline is required when TimePreference is Scheduled.", nameof(scheduledDeadline));
+
+        if (timePreference == ErrandTimePreference.Scheduled && scheduledDeadline <= utcNow)
+            throw new ArgumentException("scheduledDeadline must be in the future.", nameof(scheduledDeadline));
+
+        var computedDeadline = timePreference switch
+        {
+            ErrandTimePreference.Asap => utcNow.AddHours(2),
+            ErrandTimePreference.SameDay => utcNow.Date.AddDays(1).AddTicks(-1),
+            ErrandTimePreference.Scheduled => scheduledDeadline!.Value,
+            _ => throw new ArgumentException($"Unsupported TimePreference: {timePreference}")
+        };
+
         return new Errand
         {
             Id = Guid.NewGuid(),
@@ -75,16 +84,25 @@ public class Errand
             EstimatedCost = estimatedCost,
             PickupLatitude = pickupLatitude,
             PickupLongitude = pickupLongitude,
-            Deadline = deadline,
+            Deadline = computedDeadline,
+            TimePreference = timePreference,
             Status = ErrandStatus.Created,
             CreatedAt = utcNow
         };
     }
 
+    public bool IsOverdue(DateTime utcNow)
+    {
+        if (Deadline is null)
+            return false;
+
+        var terminal = Status is ErrandStatus.Completed or ErrandStatus.Cancelled or ErrandStatus.Disputed;
+        return !terminal && utcNow > Deadline.Value;
+    }
+
     public void Accept(Guid runnerId, DateTime utcNow)
     {
         EnsureStatus(ErrandStatus.Created, nameof(Accept));
-
         RunnerId = runnerId;
         Status = ErrandStatus.Accepted;
         AcceptedAt = utcNow;
@@ -94,16 +112,18 @@ public class Errand
     {
         EnsureStatus(ErrandStatus.Accepted, nameof(Start));
         EnsureRunnerOwnership(runnerId);
-
         Status = ErrandStatus.InProgress;
         StartedAt = utcNow;
     }
 
-    /// <summary>
-    /// Runner uploads proof of completion. This moves the errand into
-    /// PendingConfirmation — it does NOT release funds. Only the customer's
-    /// ConfirmCompletion (or the auto-release background job) does that.
-    /// </summary>
+    public void UnassignRunner(DateTime utcNow)
+    {
+        EnsureStatus(ErrandStatus.Accepted, nameof(UnassignRunner));
+        RunnerId = null;
+        AcceptedAt = null;
+        Status = ErrandStatus.Created;
+    }
+
     public void AttachProofAndSubmitForConfirmation(Guid runnerId, Proof proof, decimal finalCost, DateTime utcNow)
     {
         EnsureStatus(ErrandStatus.InProgress, nameof(AttachProofAndSubmitForConfirmation));
@@ -118,15 +138,19 @@ public class Errand
         PendingConfirmationAt = utcNow;
     }
 
-    /// <summary>
-    /// Customer confirms (or auto-release job fires). Marks Completed.
-    /// The caller (command handler) is responsible for invoking
-    /// IEscrowService.ReleaseFundsAsync — this method only updates errand state.
-    /// </summary>
     public void ConfirmCompletion(DateTime utcNow)
     {
         EnsureStatus(ErrandStatus.PendingConfirmation, nameof(ConfirmCompletion));
+        Status = ErrandStatus.Completed;
+        CompletedAt = utcNow;
+    }
 
+    public void AdminForceComplete(DateTime utcNow)
+    {
+        if (Status is not (ErrandStatus.Accepted or ErrandStatus.InProgress or ErrandStatus.PendingConfirmation))
+            throw new InvalidErrandStateException(Status, nameof(AdminForceComplete));
+
+        FinalCost ??= EstimatedCost;
         Status = ErrandStatus.Completed;
         CompletedAt = utcNow;
     }
@@ -143,11 +167,6 @@ public class Errand
         Status = ErrandStatus.Disputed;
     }
 
-    /// <summary>
-    /// Called after Admin resolves the dispute (PRD 12.3). Errand moves to
-    /// Completed or Cancelled depending on resolution; escrow release/refund
-    /// itself is triggered by the ResolveDisputeCommandHandler via IEscrowService.
-    /// </summary>
     public void ResolveDisputeAndClose(bool errandConsideredComplete, DateTime utcNow)
     {
         if (Status != ErrandStatus.Disputed)
@@ -185,6 +204,46 @@ public class Errand
         var message = Message.Create(Id, senderId, content, utcNow);
         _messages.Add(message);
         return message;
+    }
+
+    public void ProposePriceAdjustment(Guid runnerId, decimal newCost, string reason, DateTime utcNow)
+    {
+        EnsureStatus(ErrandStatus.InProgress, nameof(ProposePriceAdjustment));
+        EnsureRunnerOwnership(runnerId);
+
+        if (newCost <= 0)
+            throw new ArgumentException("Proposed cost must be greater than zero.", nameof(newCost));
+
+        if (ProposedCost is not null)
+            throw new InvalidOperationException("A price adjustment is already pending for this errand.");
+
+        ProposedCost = newCost;
+        ProposedCostReason = reason;
+        ProposedCostAt = utcNow;
+    }
+
+    public void ApprovePriceAdjustment(DateTime utcNow)
+    {
+        if (ProposedCost is null)
+            throw new InvalidOperationException("There is no pending price adjustment to approve.");
+
+        EstimatedCost = ProposedCost.Value;
+        ClearPendingProposal();
+    }
+
+    public void RejectPriceAdjustment(DateTime utcNow)
+    {
+        if (ProposedCost is null)
+            throw new InvalidOperationException("There is no pending price adjustment to reject.");
+
+        ClearPendingProposal();
+    }
+
+    private void ClearPendingProposal()
+    {
+        ProposedCost = null;
+        ProposedCostReason = null;
+        ProposedCostAt = null;
     }
 
     private void EnsureStatus(ErrandStatus required, string action)

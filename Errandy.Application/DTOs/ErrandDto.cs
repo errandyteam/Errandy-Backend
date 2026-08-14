@@ -21,6 +21,9 @@ public class ErrandDto
     public DateTime? PendingConfirmationAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public ProofDto? Proof { get; set; }
+    public bool IsExactLocation { get; set; }
+    public ErrandTimePreference TimePreference { get; set; }
+    public bool IsOverdue { get; set; }
 }
 
 public class ErrandSummaryDto

@@ -11,5 +11,6 @@ public record CreateErrandCommand : IRequest<Guid>
     public decimal EstimatedCost { get; init; }
     public double PickupLatitude { get; init; }
     public double PickupLongitude { get; init; }
-    public DateTime? Deadline { get; init; }
+    public ErrandTimePreference TimePreference { get; init; } = ErrandTimePreference.Asap;
+    public DateTime? ScheduledDeadline { get; init; }
 }

@@ -1,8 +1,13 @@
 using Errandy.Application.Features.Errands.AcceptErrand;
+using Errandy.Application.Features.Errands.AdminForceComplete;
+using Errandy.Application.Features.Errands.CancelErrand;
 using Errandy.Application.Features.Errands.ConfirmCompletion;
 using Errandy.Application.Features.Errands.CreateErrand;
 using Errandy.Application.Features.Errands.GetErrandById;
+using Errandy.Application.Features.Errands.GetMyErrands;
 using Errandy.Application.Features.Errands.GetNearbyErrands;
+using Errandy.Application.Features.Errands.ProposePriceAdjustment;
+using Errandy.Application.Features.Errands.RespondToPriceAdjustment;
 using Errandy.Application.Features.Errands.StartErrand;
 using Errandy.Application.Features.Errands.UploadProof;
 using Errandy.Domain.Enums;
@@ -111,6 +116,7 @@ public class ErrandsController : ControllerBase
         return NoContent();
     }
 
+
     /// <summary>
     /// Customer confirms completion — this is what triggers escrow release to the runner.
     /// </summary>
@@ -120,6 +126,73 @@ public class ErrandsController : ControllerBase
     {
         await _mediator.Send(new ConfirmCompletionCommand { ErrandId = id, CustomerId = body.CustomerId }, cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Customer or runner cancels — penalty rules depend on who's cancelling and
+    /// what stage the errand is at (PRD 13).
+    /// </summary>
+    [HttpPost("{id:guid}/cancel")]
+    [Authorize]
+    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelErrandRequestBody body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new CancelErrandCommand { ErrandId = id, RequestingUserId = body.RequestingUserId }, cancellationToken);
+        return NoContent();
+    }
+    /// <summary>Runner proposes a cost change mid-task (PRD 7).</summary>
+    [HttpPost("{id:guid}/price-adjustment")]
+    [Authorize(Roles = "Runner")]
+    public async Task<IActionResult> ProposePriceAdjustment(Guid id, [FromBody] ProposePriceAdjustmentRequestBody body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ProposePriceAdjustmentCommand
+        {
+            ErrandId = id,
+            RunnerId = body.RunnerId,
+            NewCost = body.NewCost,
+            Reason = body.Reason
+        }, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Customer approves or rejects a pending price adjustment.</summary>
+    [HttpPost("{id:guid}/price-adjustment/respond")]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> RespondToPriceAdjustment(Guid id, [FromBody] RespondToPriceAdjustmentRequestBody body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new RespondToPriceAdjustmentCommand
+        {
+            ErrandId = id,
+            CustomerId = body.CustomerId,
+            Approve = body.Approve
+        }, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/force-complete")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ForceComplete(Guid id, [FromBody] AdminForceCompleteRequestBody body, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new AdminForceCompleteErrandCommand
+        {
+            ErrandId = id,
+            AdminId = body.AdminId,
+            Reason = body.Reason
+        }, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<IActionResult> GetMine(
+    [FromQuery] Guid userId,
+    [FromQuery] bool asCustomer = true,
+    [FromQuery] Domain.Enums.ErrandStatus? status = null,
+    CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetMyErrandsQuery { UserId = userId, AsCustomer = asCustomer, StatusFilter = status },
+            cancellationToken);
+        return Ok(result);
     }
 }
 
@@ -131,3 +204,7 @@ public class ErrandsController : ControllerBase
 public record AcceptErrandRequestBody(Guid RunnerId);
 public record UploadProofRequestBody(Guid RunnerId, string ImageUrl, string? ReceiptUrl, decimal FinalCost);
 public record ConfirmCompletionRequestBody(Guid CustomerId);
+public record CancelErrandRequestBody(Guid RequestingUserId);
+public record ProposePriceAdjustmentRequestBody(Guid RunnerId, decimal NewCost, string Reason);
+public record RespondToPriceAdjustmentRequestBody(Guid CustomerId, bool Approve);
+public record AdminForceCompleteRequestBody(Guid AdminId, string Reason);

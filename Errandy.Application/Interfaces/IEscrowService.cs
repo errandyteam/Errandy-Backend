@@ -22,6 +22,9 @@ public interface IEscrowService
     /// <summary>Called alongside ReleaseFundsAsync (or on cancellation) to return the unused buffer / full amount to the customer.</summary>
     Task RefundFundsAsync(Guid errandId, Guid customerId, decimal amount, CancellationToken cancellationToken = default);
 
+    /// <summary>Called when a price adjustment is approved (PRD 7 — "escrow is adjusted"). newAmount may be higher or lower than what's currently locked.</summary>
+    Task AdjustLockedFundsAsync(Guid errandId, Guid customerId, decimal oldAmount, decimal newAmount, CancellationToken cancellationToken = default);
+
     /// <summary>Called by ResolveDisputeCommandHandler when Admin picks a PartialRefund outcome (PRD 12.3).</summary>
     Task PartialRefundAsync(Guid errandId, Guid customerId, decimal refundAmount, decimal releaseToRunnerAmount, CancellationToken cancellationToken = default);
 }

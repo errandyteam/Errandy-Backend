@@ -20,7 +20,8 @@ public class ErrandTests
             estimatedCost: 5000m,
             pickupLatitude: 6.6018,
             pickupLongitude: 3.3515,
-            deadline: null,
+            timePreference: ErrandTimePreference.Asap,
+            scheduledDeadline: null,
             utcNow: UtcNow);
     }
 
@@ -35,7 +36,7 @@ public class ErrandTests
     public void Create_WithZeroCost_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
-            Errand.Create(CustomerId, ErrandCategory.Delivery, "test", 0m, 6.6, 3.3, null, UtcNow));
+            Errand.Create(CustomerId, ErrandCategory.Delivery, "test", 0m, 6.6, 3.3, ErrandTimePreference.Asap, null, UtcNow));
     }
 
     [Fact]

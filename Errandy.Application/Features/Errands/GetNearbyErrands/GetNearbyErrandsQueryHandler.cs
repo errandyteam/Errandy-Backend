@@ -48,6 +48,8 @@ public class GetNearbyErrandsQueryHandler : IRequestHandler<GetNearbyErrandsQuer
 
             if (distanceKm <= request.RadiusKm)
             {
+                var (fuzzedLat, fuzzedLng) = LocationPrivacyHelper.Fuzz(e.PickupLatitude, e.PickupLongitude);
+
                 results.Add(new ErrandSummaryDto
                 {
                     Id = e.Id,
@@ -55,8 +57,8 @@ public class GetNearbyErrandsQueryHandler : IRequestHandler<GetNearbyErrandsQuer
                     Description = e.Description,
                     Status = e.Status,
                     EstimatedCost = e.EstimatedCost,
-                    PickupLatitude = e.PickupLatitude,
-                    PickupLongitude = e.PickupLongitude,
+                    PickupLatitude = fuzzedLat,
+                    PickupLongitude = fuzzedLng,
                     DistanceKm = Math.Round(distanceKm, 2),
                     Deadline = e.Deadline,
                     CreatedAt = e.CreatedAt
