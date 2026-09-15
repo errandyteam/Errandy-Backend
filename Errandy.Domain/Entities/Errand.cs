@@ -1,6 +1,7 @@
 using Errandy.Domain.Enums;
 using Errandy.Domain.Exceptions;
 
+
 namespace Errandy.Domain.Entities;
 
 /// <summary>
@@ -180,7 +181,8 @@ public class Errand
             throw new InvalidErrandStateException(Status, nameof(AddMessage));
 
         if (senderId != CustomerId && senderId != RunnerId)
-            throw new UnauthorizedAccessException("Only the customer or assigned runner may message on this errand.");
+            throw new ForbiddenDomainException(
+    "Only the customer or assigned runner may message on this errand.");
 
         var message = Message.Create(Id, senderId, content, utcNow);
         _messages.Add(message);
@@ -196,6 +198,7 @@ public class Errand
     private void EnsureRunnerOwnership(Guid runnerId)
     {
         if (RunnerId != runnerId)
-            throw new UnauthorizedAccessException("Only the assigned runner may perform this action.");
+            throw new ForbiddenDomainException(
+     "Only the assigned runner may perform this action.");
     }
 }

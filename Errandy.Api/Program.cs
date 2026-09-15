@@ -5,13 +5,21 @@ using Errandy.Application.Common.Interfaces;
 using Errandy.Infrastructure;
 using Errandy.Infrastructure.Persistence;
 using Microsoft.OpenApi.Models;
+using Errandy.Api.TestDoubles;
+using Errandy.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ----- Layer registrations -----
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddScoped<IEscrowService, FakeEscrowService>();
+
+builder.Services.AddSingleton<IBackgroundJobScheduler, FakeInProcessBackgroundJobScheduler>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
+
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

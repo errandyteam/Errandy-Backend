@@ -2,6 +2,7 @@
 using Errandy.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Errandy.Api.TestDoubles;
 
 /// <summary>
@@ -22,6 +23,8 @@ public class InMemoryApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Proof> Proofs => Set<Proof>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<User> Users { get; set; }
+    public DbSet<RunnerProfile> RunnerProfiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
