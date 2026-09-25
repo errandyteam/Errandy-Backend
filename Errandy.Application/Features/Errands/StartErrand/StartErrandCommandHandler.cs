@@ -1,5 +1,6 @@
 using Errandy.Application.Common.Exceptions;
 using Errandy.Application.Interfaces;
+using Errandy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,12 @@ public class StartErrandCommandHandler : IRequestHandler<StartErrandCommand>
 
         if (errand is null)
             throw new NotFoundException(nameof(Domain.Entities.Errand), request.ErrandId);
+
+        var runnerProfile = await _context.RunnerProfiles
+            .FirstOrDefaultAsync(rp => rp.UserId == request.RunnerId, cancellationToken);
+
+        if (runnerProfile is null || runnerProfile.KycStatus != KycStatus.Approved)
+            throw new ForbiddenAccessException("Runner is not approved to start errands.");
 
         errand.Start(request.RunnerId, _dateTimeProvider.UtcNow);
 
