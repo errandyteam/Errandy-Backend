@@ -1,5 +1,6 @@
 ﻿using Errandy.Api.Contracts;
 using Errandy.Application.Common.DTOs;
+using Errandy.Application.Features.Auth.Commands.ChangePassword;
 using Errandy.Application.Features.Auth.Commands.LoginUser;
 using Errandy.Application.Features.Auth.Commands.RegisterUser;
 using Microsoft.AspNetCore.Authorization;
@@ -30,6 +31,24 @@ public class AuthController : ApiControllerBase
         [FromBody] LoginRequest request, CancellationToken ct)
     {
         var command = new LoginUserCommand(request.Email, request.Password);
+        return HandleResult(await Mediator.Send(command, ct));
+    }
+
+    /// <summary>Changes the authenticated user's password.</summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request, CancellationToken ct)
+    {
+        var userId = CurrentUser.UserId;
+        if (userId is null) return Unauthorized();
+
+        var command = new ChangePasswordCommand(
+            userId.Value, request.CurrentPassword, request.NewPassword);
+
         return HandleResult(await Mediator.Send(command, ct));
     }
 }
