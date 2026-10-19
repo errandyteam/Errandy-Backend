@@ -12,9 +12,6 @@ public class AuthController : ApiControllerBase
 {
     /// <summary>Registers a new customer account and returns a JWT.</summary>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterRequest request, CancellationToken ct)
     {
@@ -24,9 +21,6 @@ public class AuthController : ApiControllerBase
     }
     /// <summary>Authenticates a user and returns a JWT.</summary>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequest request, CancellationToken ct)
     {
@@ -49,6 +43,18 @@ public class AuthController : ApiControllerBase
         var command = new ChangePasswordCommand(
             userId.Value, request.CurrentPassword, request.NewPassword);
 
-        return HandleResult(await Mediator.Send(command, ct));
+        var result = await Mediator.Send(command, ct);
+
+        if (!result.IsSuccess)
+        {
+            return HandleResult(result);
+        }
+
+        return Ok(new
+        {
+            message = "Password changed successfully"
+        });
+
+
     }
 }
