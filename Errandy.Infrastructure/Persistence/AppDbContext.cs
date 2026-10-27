@@ -4,6 +4,7 @@ using Errandy.Domain.Common;
 using Errandy.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using TransactionEntity = Errandy.Domain.Entities.Transaction;
 
 namespace Errandy.Infrastructure.Persistence;
 
@@ -18,6 +19,10 @@ public class ErrandyDbContext : DbContext, IUnitOfWork, IApplicationDbContext
     // Authentication / User Management
     public DbSet<User> Users => Set<User>();
     public DbSet<RunnerProfile> RunnerProfiles => Set<RunnerProfile>();
+
+    // Financial System (Engineer B)
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
 
     // Errand / Chat / Dispute
     public DbSet<Errand> Errands => Set<Errand>();

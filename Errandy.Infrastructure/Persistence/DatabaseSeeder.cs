@@ -2,9 +2,11 @@
 using Errandy.Domain.Entities;
 using Errandy.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+
 namespace Errandy.Infrastructure.Persistence;
+
 /// <summary>
-/// Applies pending migrations and seeds a default admin account on startup.
+/// Applies pending migrations and seeds a default admin account (with wallet) on startup.
 /// </summary>
 public static class DatabaseSeeder
 {
@@ -16,18 +18,34 @@ public static class DatabaseSeeder
     {
         await db.Database.MigrateAsync();
         var normalizedEmail = adminEmail.Trim().ToLowerInvariant();
-        var adminExists = await db.Users.AnyAsync(u => u.Email == normalizedEmail);
-        if (adminExists)
-            return;
-        var admin = new User
+        var admin = await db.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+        if (admin is null)
         {
-            FullName = "Errandy Admin",
-            Email = normalizedEmail,
-            PhoneNumber = "+10000000000",
-            PasswordHash = hasher.Hash(adminPassword),
-            Role = UserRole.Admin
-        };
-        db.Users.Add(admin);
-        await db.SaveChangesAsync();
+            admin = new User
+            {
+                FullName = "Errandy Admin",
+                Email = normalizedEmail,
+                PhoneNumber = "+10000000000",
+                PasswordHash = hasher.Hash(adminPassword),
+                Role = UserRole.Admin
+            };
+            db.Users.Add(admin);
+            await db.SaveChangesAsync();
+        }
+
+        var adminWalletExists = await db.Wallets.AnyAsync(w => w.UserId == admin.Id);
+        if (!adminWalletExists)
+        {
+            db.Wallets.Add(new Wallet
+            {
+                UserId = admin.Id,
+                Balance = 0m,
+                LockedBalance = 0m,
+                Currency = "NGN",
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
     }
 }
