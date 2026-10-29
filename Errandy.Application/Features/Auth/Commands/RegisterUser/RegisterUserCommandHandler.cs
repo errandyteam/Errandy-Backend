@@ -4,26 +4,32 @@ using Errandy.Application.Common.Results;
 using Errandy.Domain.Entities;
 using Errandy.Domain.Enums;
 using MediatR;
+
 namespace Errandy.Application.Features.Auth.Commands.RegisterUser;
 
 public class RegisterUserCommandHandler
     : IRequestHandler<RegisterUserCommand, Result<AuthResponseDto>>
 {
     private readonly IUserRepository _users;
+    private readonly IWalletRepository _wallets;
     private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher _hasher;
     private readonly IJwtTokenGenerator _jwt;
+
     public RegisterUserCommandHandler(
         IUserRepository users,
+        IWalletRepository wallets,
         IUnitOfWork uow,
         IPasswordHasher hasher,
         IJwtTokenGenerator jwt)
     {
         _users = users;
+        _wallets = wallets;
         _uow = uow;
         _hasher = hasher;
         _jwt = jwt;
     }
+
     public async Task<Result<AuthResponseDto>> Handle(
         RegisterUserCommand request,
         CancellationToken cancellationToken)
@@ -32,6 +38,7 @@ public class RegisterUserCommandHandler
         if (await _users.ExistsByEmailAsync(email, cancellationToken))
             return Result<AuthResponseDto>.Failure(
                 "An account with this email already exists.", ErrorType.Conflict);
+
         var user = new User
         {
             FullName = request.FullName.Trim(),
@@ -40,8 +47,22 @@ public class RegisterUserCommandHandler
             PasswordHash = _hasher.Hash(request.Password),
             Role = UserRole.Customer // everyone starts as a customer
         };
+
         await _users.AddAsync(user, cancellationToken);
+
+        // Week 1 (Engineer B): Auto-create wallet on registration in the same atomic transaction
+        var wallet = new Wallet
+        {
+            UserId = user.Id,
+            Balance = 0m,
+            LockedBalance = 0m,
+            Currency = "NGN",
+            IsActive = true
+        };
+        await _wallets.AddAsync(wallet, cancellationToken);
+
         await _uow.SaveChangesAsync(cancellationToken);
+
         var (token, expires) = _jwt.GenerateToken(user);
         return Result<AuthResponseDto>.Success(
             new AuthResponseDto(token, expires, UserDto.FromEntity(user)));

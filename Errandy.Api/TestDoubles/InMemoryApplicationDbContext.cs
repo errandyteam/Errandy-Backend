@@ -1,6 +1,7 @@
 ﻿using Errandy.Application.Interfaces;
 using Errandy.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using TransactionEntity = Errandy.Domain.Entities.Transaction;
 
 
 namespace Errandy.Api.TestDoubles;
@@ -25,6 +26,8 @@ public class InMemoryApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<User> Users { get; set; }
     public DbSet<RunnerProfile> RunnerProfiles { get; set; }
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+    public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
