@@ -6,3 +6,4 @@ public record RegisterRequest(
     string PhoneNumber,
     string Password);
 public record LoginRequest(string Email, string Password);
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
