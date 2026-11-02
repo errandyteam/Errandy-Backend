@@ -28,6 +28,8 @@ public class InMemoryApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<RunnerProfile> RunnerProfiles { get; set; }
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
+    public DbSet<EscrowHold> EscrowHolds => Set<EscrowHold>();
+    public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -13,6 +13,8 @@ public interface IApplicationDbContext
     // Financial System (Engineer B)
     DbSet<Wallet> Wallets { get; }
     DbSet<TransactionEntity> Transactions { get; }
+    DbSet<EscrowHold> EscrowHolds { get; }
+    DbSet<WithdrawalRequest> WithdrawalRequests { get; }
 
     // Errand / Chat / Dispute
     DbSet<Errand> Errands { get; }

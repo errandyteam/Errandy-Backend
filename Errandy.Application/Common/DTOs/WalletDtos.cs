@@ -62,3 +62,46 @@ public record TransactionDto(
         tx.Description,
         tx.CreatedAt);
 }
+
+public record WithdrawalRequestDto(
+    Guid Id,
+    Guid UserId,
+    Guid WalletId,
+    Guid TransactionId,
+    decimal Amount,
+    string Currency,
+    string BankName,
+    string? BankCode,
+    string AccountNumber,
+    string AccountName,
+    WithdrawalStatus Status,
+    string StatusName,
+    string Reference,
+    DateTime RequestedAt,
+    DateTime EligibleAt,
+    bool IsHoldMatured,
+    DateTime? ProcessedAt,
+    Guid? ProcessedByAdminId,
+    string? AdminNote)
+{
+    public static WithdrawalRequestDto FromEntity(WithdrawalRequest w, DateTime utcNow) => new(
+        w.Id,
+        w.UserId,
+        w.WalletId,
+        w.TransactionId,
+        w.Amount,
+        w.Currency,
+        w.BankName,
+        w.BankCode,
+        w.AccountNumber,
+        w.AccountName,
+        w.Status,
+        w.Status.ToString(),
+        w.Reference,
+        w.RequestedAt,
+        w.EligibleAt,
+        w.IsMatured(utcNow),
+        w.ProcessedAt,
+        w.ProcessedByAdminId,
+        w.AdminNote);
+}

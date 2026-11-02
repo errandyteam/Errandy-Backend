@@ -164,6 +164,70 @@ namespace Errandy.Infrastructure.Migrations
                     b.ToTable("Errands", (string)null);
                 });
 
+            modelBuilder.Entity("Errandy.Domain.Entities.EscrowHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CommissionAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("NGN");
+
+                    b.Property<decimal>("CurrentLockedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ErrandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("InitialLockedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("RefundedToCustomerAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ReleasedToRunnerAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("RunnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ErrandId")
+                        .IsUnique();
+
+                    b.HasIndex("RunnerId");
+
+                    b.HasIndex("CustomerId", "Status");
+
+                    b.ToTable("EscrowHolds", (string)null);
+                });
+
             modelBuilder.Entity("Errandy.Domain.Entities.Message", b =>
                 {
                     b.Property<Guid>("Id")
