@@ -11,7 +11,7 @@ namespace Errandy.Api.BackgroundServices;
 /// <summary>
 /// Automatically sweeps and completes pending withdrawals whose 24-hour security hold
 /// (EligibleAt <= UtcNow) has elapsed.
-/// Register in Program.cs via: builder.Services.AddHostedService<WithdrawalHoldBackgroundService>();
+/// Register in Program.cs via: builder.Services.AddHostedService<WithdrawalHoldBackgroundService>();.....
 /// </summary>
 public class WithdrawalHoldBackgroundService : BackgroundService
 {
