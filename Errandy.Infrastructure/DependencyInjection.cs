@@ -12,7 +12,6 @@ namespace Errandy.Infrastructure;
 
 public static class DependencyInjection
 {
- 
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -38,10 +37,14 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(
             sp => sp.GetRequiredService<ErrandyDbContext>());
 
-
         // ----- Repositories -----
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRunnerProfileRepository, RunnerProfileRepository>();
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
+
+        // ----- Financial / Escrow Services (Engineer B) -----
+        services.AddScoped<IEscrowService, EscrowService>();
 
         // ----- Security services -----
         services.Configure<JwtSettings>(
@@ -50,9 +53,6 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
-
-
-
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();

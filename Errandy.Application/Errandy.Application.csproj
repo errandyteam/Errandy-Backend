@@ -22,9 +22,7 @@
 
 	<ItemGroup>
 		<Folder Include="DTOs\" />
-		<Folder Include="Common\" />
 		<Folder Include="Interfaces\" />
-		<Folder Include="Features\" />
 	</ItemGroup>
 
 </Project>

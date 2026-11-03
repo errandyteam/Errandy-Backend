@@ -1,5 +1,6 @@
 using Errandy.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using TransactionEntity = Errandy.Domain.Entities.Transaction;
 
 namespace Errandy.Application.Interfaces;
 
@@ -8,6 +9,12 @@ public interface IApplicationDbContext
     // Authentication / User Management
     DbSet<User> Users { get; }
     DbSet<RunnerProfile> RunnerProfiles { get; }
+
+    // Financial System (Engineer B)
+    DbSet<Wallet> Wallets { get; }
+    DbSet<TransactionEntity> Transactions { get; }
+    DbSet<EscrowHold> EscrowHolds { get; }
+    DbSet<WithdrawalRequest> WithdrawalRequests { get; }
 
     // Errand / Chat / Dispute
     DbSet<Errand> Errands { get; }

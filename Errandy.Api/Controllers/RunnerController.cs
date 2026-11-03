@@ -4,6 +4,7 @@ using Errandy.Application.Features.Runners.Commands.BecomeRunner;
 using Errandy.Application.Features.Runners.Commands.ReviewKyc;
 using Errandy.Application.Features.Runners.Commands.SubmitKyc;
 using Errandy.Application.Features.Runners.Queries.GetPendingKyc;
+using Errandy.Application.Features.Runners.Queries.GetMyRunnerProfile;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Errandy.Api.Controllers;
@@ -58,5 +59,17 @@ public class RunnerController : ApiControllerBase
         var command = new ReviewKycCommand(
             adminId.Value, runnerProfileId, request.Approve, request.RejectionReason);
         return HandleResult(await Mediator.Send(command, ct));
+    }
+
+    /// <summary>Returns the authenticated runner's own profile.</summary>
+    [HttpGet("me")]
+    [Authorize(Roles = "Runner")]
+    public async Task<IActionResult> GetMyRunnerProfile(CancellationToken ct)
+    {
+        var userId = CurrentUser.UserId;
+        if (userId is null) return Unauthorized();
+
+        return HandleResult(
+            await Mediator.Send(new GetMyRunnerProfileQuery(userId.Value), ct));
     }
 }
