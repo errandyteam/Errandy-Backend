@@ -1,19 +1,25 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using Errandy.Application.Common.DTOs;
 using Errandy.Application.Common.Interfaces;
 using Errandy.Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+
 namespace Errandy.Infrastructure.Security;
 
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtSettings _settings;
+
     public JwtTokenGenerator(IOptions<JwtSettings> settings) => _settings = settings.Value;
-    public (string token, DateTime expiresAtUtc) GenerateToken(User user)
+
+    public (string token, DateTime expiresAtUtc) GenerateAccessToken(User user)
     {
         var expires = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -23,8 +29,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Role, user.Role.ToString())
         };
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
             audience: _settings.Audience,
@@ -32,7 +40,30 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             notBefore: DateTime.UtcNow,
             expires: expires,
             signingCredentials: creds);
+
         var encoded = new JwtSecurityTokenHandler().WriteToken(token);
         return (encoded, expires);
+    }
+
+    public (string token, DateTime expiresAtUtc) GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(40); // 40 bytes -> base64 ~ 56 chars
+        var token = Convert.ToBase64String(bytes);
+        var expires = DateTime.UtcNow.AddDays(_settings.RefreshTokenTtlDays);
+        return (token, expires);
+    }
+
+    public TokenPair GenerateTokenPair(User user)
+    {
+        var (access, accessExp) = GenerateAccessToken(user);
+        var (refresh, refreshExp) = GenerateRefreshToken();
+        return new TokenPair(access, accessExp, refresh, refreshExp);
+    }
+
+    public string HashRefreshToken(string refreshToken)
+    {
+        var bytes = Encoding.UTF8.GetBytes(refreshToken);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }

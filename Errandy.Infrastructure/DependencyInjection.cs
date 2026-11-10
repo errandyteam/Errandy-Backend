@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IRunnerProfileRepository, RunnerProfileRepository>();
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         // ----- Security services -----
         services.Configure<JwtSettings>(

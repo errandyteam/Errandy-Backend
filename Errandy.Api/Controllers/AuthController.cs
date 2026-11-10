@@ -3,6 +3,8 @@ using Errandy.Application.Common.DTOs;
 using Errandy.Application.Features.Auth.Commands.ChangePassword;
 using Errandy.Application.Features.Auth.Commands.LoginUser;
 using Errandy.Application.Features.Auth.Commands.RegisterUser;
+using Errandy.Application.Features.Auth.Commands.RefreshTokens;
+using Errandy.Application.Features.Auth.Commands.Logout;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace Errandy.Api.Controllers;
@@ -31,9 +33,6 @@ public class AuthController : ApiControllerBase
     /// <summary>Changes the authenticated user's password.</summary>
     [HttpPost("change-password")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword(
         [FromBody] ChangePasswordRequest request, CancellationToken ct)
     {
@@ -54,7 +53,23 @@ public class AuthController : ApiControllerBase
         {
             message = "Password changed successfully"
         });
+    }
 
+    /// <summary>Exchanges a valid refresh token for a new access+refresh token pair.</summary>
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken(
+        [FromBody] RefreshTokenRequest request, CancellationToken ct)
+    {
+        var command = new RefreshTokenCommand(request.RefreshToken);
+        return HandleResult(await Mediator.Send(command, ct));
+    }
 
+    /// <summary>Revokes the provided refresh token (logout).</summary>
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        [FromBody] LogoutRequest request, CancellationToken ct)
+    {
+        var command = new LogoutCommand(request.RefreshToken);
+        return HandleResult(await Mediator.Send(command, ct));
     }
 }

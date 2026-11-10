@@ -19,6 +19,7 @@ public class ErrandyDbContext : DbContext, IUnitOfWork, IApplicationDbContext
     // Authentication / User Management
     public DbSet<User> Users => Set<User>();
     public DbSet<RunnerProfile> RunnerProfiles => Set<RunnerProfile>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // Financial System (Engineer B)
     public DbSet<Wallet> Wallets => Set<Wallet>();

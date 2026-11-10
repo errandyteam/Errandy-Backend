@@ -222,6 +222,54 @@ namespace Errandy.Infrastructure.Migrations
                     b.ToTable("Proofs", (string)null);
                 });
 
+            modelBuilder.Entity("Errandy.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReasonRevoked")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ReplacedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("ReplacedById")
+                        .IsUnique();
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("Errandy.Domain.Entities.RunnerProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -372,6 +420,9 @@ namespace Errandy.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -467,6 +518,24 @@ namespace Errandy.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Errandy.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("Errandy.Domain.Entities.RefreshToken", "ReplacedBy")
+                        .WithOne()
+                        .HasForeignKey("Errandy.Domain.Entities.RefreshToken", "ReplacedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Errandy.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReplacedBy");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Errandy.Domain.Entities.RunnerProfile", b =>
                 {
                     b.HasOne("Errandy.Domain.Entities.User", "User")
@@ -511,6 +580,8 @@ namespace Errandy.Infrastructure.Migrations
 
             modelBuilder.Entity("Errandy.Domain.Entities.User", b =>
                 {
+                    b.Navigation("RefreshTokens");
+
                     b.Navigation("RunnerProfile");
                 });
 
