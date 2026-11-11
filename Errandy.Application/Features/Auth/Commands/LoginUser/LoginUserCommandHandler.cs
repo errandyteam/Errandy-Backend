@@ -29,8 +29,13 @@ public class LoginUserCommandHandler
         if (user is null || !_hasher.Verify(request.Password, user.PasswordHash))
             return Result<AuthResponseDto>.Failure(
                 "Invalid email or password.", ErrorType.Unauthorized);
-        var (token, expires) = _jwt.GenerateToken(user);
+        var pair = _jwt.GenerateTokenPair(user);
         return Result<AuthResponseDto>.Success(
-            new AuthResponseDto(token, expires, UserDto.FromEntity(user)));
+           new AuthResponseDto(
+               pair.AccessToken,
+               pair.AccessTokenExpiresAtUtc,
+               pair.RefreshToken,
+               pair.RefreshTokenExpiresAtUtc,
+               UserDto.FromEntity(user)));
     }
 }

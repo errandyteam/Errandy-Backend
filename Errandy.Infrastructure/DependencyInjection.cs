@@ -21,7 +21,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("DatabaseProvider") ?? "Postgres";
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        services.AddDbContext<ErrandyDbContext>(options =>
+        services.AddDbContext<AppDbContext>(options =>
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
                 options.UseSqlServer(connectionString);
@@ -31,17 +31,18 @@ public static class DependencyInjection
 
         // ----- Shared database context -----
         services.AddScoped<IApplicationDbContext>(
-            sp => sp.GetRequiredService<ErrandyDbContext>());
+            sp => sp.GetRequiredService<AppDbContext>());
 
         // ----- Unit of Work -----
         services.AddScoped<IUnitOfWork>(
-            sp => sp.GetRequiredService<ErrandyDbContext>());
+            sp => sp.GetRequiredService<AppDbContext>());
 
         // ----- Repositories -----
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRunnerProfileRepository, RunnerProfileRepository>();
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         // ----- Financial / Escrow Services (Engineer B) -----
         services.AddScoped<IEscrowService, EscrowService>();

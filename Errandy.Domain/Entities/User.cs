@@ -11,6 +11,9 @@ public class User : BaseEntity
     
     public string PasswordHash { get; set; } = string.Empty;
     public UserRole Role { get; set; } = UserRole.Customer;
-    
+    public bool IsActive { get; set; } = true;
+
     public RunnerProfile? RunnerProfile { get; set; }
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

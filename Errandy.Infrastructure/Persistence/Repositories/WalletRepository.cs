@@ -6,9 +6,9 @@ namespace Errandy.Infrastructure.Persistence.Repositories;
 
 public class WalletRepository : IWalletRepository
 {
-    private readonly ErrandyDbContext _db;
+    private readonly AppDbContext _db;
 
-    public WalletRepository(ErrandyDbContext db)
+    public WalletRepository(AppDbContext db)
     {
         _db = db;
     }

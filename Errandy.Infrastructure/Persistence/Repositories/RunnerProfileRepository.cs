@@ -6,8 +6,8 @@ namespace Errandy.Infrastructure.Persistence.Repositories;
 
 public class RunnerProfileRepository : IRunnerProfileRepository
 {
-    private readonly ErrandyDbContext _db;
-    public RunnerProfileRepository(ErrandyDbContext db) => _db = db;
+    private readonly AppDbContext _db;
+    public RunnerProfileRepository(AppDbContext db) => _db = db;
     public Task<RunnerProfile?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         _db.RunnerProfiles.FirstOrDefaultAsync(p => p.Id == id, ct);
     public Task<RunnerProfile?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>

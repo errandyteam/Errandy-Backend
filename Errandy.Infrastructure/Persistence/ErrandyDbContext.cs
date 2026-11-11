@@ -8,10 +8,10 @@ using TransactionEntity = Errandy.Domain.Entities.Transaction;
 
 namespace Errandy.Infrastructure.Persistence;
 
-public class ErrandyDbContext : DbContext, IUnitOfWork, IApplicationDbContext
+public class AppDbContext : DbContext, IUnitOfWork, IApplicationDbContext
 {
-    public ErrandyDbContext(
-        DbContextOptions<ErrandyDbContext> options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
@@ -19,6 +19,7 @@ public class ErrandyDbContext : DbContext, IUnitOfWork, IApplicationDbContext
     // Authentication / User Management
     public DbSet<User> Users => Set<User>();
     public DbSet<RunnerProfile> RunnerProfiles => Set<RunnerProfile>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // Financial System (Engineer B)
     public DbSet<Wallet> Wallets => Set<Wallet>();

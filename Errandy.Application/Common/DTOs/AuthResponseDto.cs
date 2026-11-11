@@ -1,6 +1,8 @@
 ﻿namespace Errandy.Application.Common.DTOs;
 
 public record AuthResponseDto(
-    string Token,
-    DateTime ExpiresAtUtc,
+    string AccessToken,
+    DateTime AccessTokenExpiresAtUtc,
+    string RefreshToken,
+    DateTime RefreshTokenExpiresAtUtc,
     UserDto User);

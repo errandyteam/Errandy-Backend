@@ -11,20 +11,20 @@ public class RegisterUserCommandHandler
     : IRequestHandler<RegisterUserCommand, Result<AuthResponseDto>>
 {
     private readonly IUserRepository _users;
-    private readonly IWalletRepository _wallets;
+    private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IUnitOfWork _uow;
     private readonly IPasswordHasher _hasher;
     private readonly IJwtTokenGenerator _jwt;
 
     public RegisterUserCommandHandler(
         IUserRepository users,
-        IWalletRepository wallets,
+        IRefreshTokenRepository refreshTokens,
         IUnitOfWork uow,
         IPasswordHasher hasher,
         IJwtTokenGenerator jwt)
     {
         _users = users;
-        _wallets = wallets;
+        _refreshTokens = refreshTokens;
         _uow = uow;
         _hasher = hasher;
         _jwt = jwt;
@@ -35,6 +35,7 @@ public class RegisterUserCommandHandler
         CancellationToken cancellationToken)
     {
         var email = request.Email.Trim().ToLowerInvariant();
+
         if (await _users.ExistsByEmailAsync(email, cancellationToken))
             return Result<AuthResponseDto>.Failure(
                 "An account with this email already exists.", ErrorType.Conflict);
@@ -45,26 +46,29 @@ public class RegisterUserCommandHandler
             Email = email,
             PhoneNumber = request.PhoneNumber.Trim(),
             PasswordHash = _hasher.Hash(request.Password),
-            Role = UserRole.Customer // everyone starts as a customer
+            Role = UserRole.Customer
         };
 
         await _users.AddAsync(user, cancellationToken);
-
-        // Week 1 (Engineer B): Auto-create wallet on registration in the same atomic transaction
-        var wallet = new Wallet
-        {
-            UserId = user.Id,
-            Balance = 0m,
-            LockedBalance = 0m,
-            Currency = "NGN",
-            IsActive = true
-        };
-        await _wallets.AddAsync(wallet, cancellationToken);
-
         await _uow.SaveChangesAsync(cancellationToken);
 
-        var (token, expires) = _jwt.GenerateToken(user);
+        var pair = _jwt.GenerateTokenPair(user);
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = _jwt.HashRefreshToken(pair.RefreshToken),
+            ExpiresAtUtc = pair.RefreshTokenExpiresAtUtc,
+        };
+        await _refreshTokens.AddAsync(refreshToken, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
+
         return Result<AuthResponseDto>.Success(
-            new AuthResponseDto(token, expires, UserDto.FromEntity(user)));
+            new AuthResponseDto(
+                pair.AccessToken,
+                pair.AccessTokenExpiresAtUtc,
+                pair.RefreshToken,
+                pair.RefreshTokenExpiresAtUtc,
+                UserDto.FromEntity(user)));
     }
 }

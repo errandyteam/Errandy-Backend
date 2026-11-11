@@ -7,3 +7,5 @@ public record RegisterRequest(
     string Password);
 public record LoginRequest(string Email, string Password);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record RefreshTokenRequest(string RefreshToken);
+public record LogoutRequest(string? RefreshToken);
