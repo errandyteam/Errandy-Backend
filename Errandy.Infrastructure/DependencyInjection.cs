@@ -44,6 +44,9 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
+        // ----- Financial / Escrow Services (Engineer B) -----
+        services.AddScoped<IEscrowService, EscrowService>();
+
         // ----- Security services -----
         services.Configure<JwtSettings>(
             configuration.GetSection(JwtSettings.SectionName));

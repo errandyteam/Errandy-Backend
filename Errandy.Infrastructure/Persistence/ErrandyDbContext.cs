@@ -24,6 +24,8 @@ public class AppDbContext : DbContext, IUnitOfWork, IApplicationDbContext
     // Financial System (Engineer B)
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
+    public DbSet<EscrowHold> EscrowHolds => Set<EscrowHold>();
+    public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
 
     // Errand / Chat / Dispute
     public DbSet<Errand> Errands => Set<Errand>();
