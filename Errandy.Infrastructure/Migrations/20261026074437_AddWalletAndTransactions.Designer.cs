@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Errandy.Infrastructure.Migrations
 {
-    [DbContext(typeof(ErrandyDbContext))]
+    [DbContext(typeof(AppDbContext))]
     [Migration("20261026074437_AddWalletAndTransactions")]
     partial class AddWalletAndTransactions
     {

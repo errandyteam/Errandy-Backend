@@ -21,7 +21,7 @@ public static class DependencyInjection
         var provider = configuration.GetValue<string>("DatabaseProvider") ?? "Postgres";
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-        services.AddDbContext<ErrandyDbContext>(options =>
+        services.AddDbContext<AppDbContext>(options =>
         {
             if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
                 options.UseSqlServer(connectionString);
@@ -31,11 +31,11 @@ public static class DependencyInjection
 
         // ----- Shared database context -----
         services.AddScoped<IApplicationDbContext>(
-            sp => sp.GetRequiredService<ErrandyDbContext>());
+            sp => sp.GetRequiredService<AppDbContext>());
 
         // ----- Unit of Work -----
         services.AddScoped<IUnitOfWork>(
-            sp => sp.GetRequiredService<ErrandyDbContext>());
+            sp => sp.GetRequiredService<AppDbContext>());
 
         // ----- Repositories -----
         services.AddScoped<IUserRepository, UserRepository>();

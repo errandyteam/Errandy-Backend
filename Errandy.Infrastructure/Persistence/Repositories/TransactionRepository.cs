@@ -6,9 +6,9 @@ namespace Errandy.Infrastructure.Persistence.Repositories;
 
 public class TransactionRepository : ITransactionRepository
 {
-    private readonly ErrandyDbContext _db;
+    private readonly AppDbContext _db;
 
-    public TransactionRepository(ErrandyDbContext db)
+    public TransactionRepository(AppDbContext db)
     {
         _db = db;
     }

@@ -6,9 +6,9 @@ namespace Errandy.Infrastructure.Persistence.Repositories;
 
 public class RefreshTokenRepository : IRefreshTokenRepository
 {
-    private readonly ErrandyDbContext _db;
+    private readonly AppDbContext _db;
 
-    public RefreshTokenRepository(ErrandyDbContext db) => _db = db;
+    public RefreshTokenRepository(AppDbContext db) => _db = db;
 
     public Task<RefreshToken?> GetByHashAsync(string tokenHash, CancellationToken ct = default)
         => _db.RefreshTokens

@@ -11,7 +11,7 @@ namespace Errandy.Infrastructure.Persistence;
 public static class DatabaseSeeder
 {
     public static async Task SeedAsync(
-        ErrandyDbContext db,
+        AppDbContext db,
         IPasswordHasher hasher,
         string adminEmail,
         string adminPassword)

@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Errandy.Infrastructure.Migrations
 {
-    [DbContext(typeof(ErrandyDbContext))]
+    [DbContext(typeof(AppDbContext))]
     partial class ErrandyDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

@@ -8,10 +8,10 @@ using TransactionEntity = Errandy.Domain.Entities.Transaction;
 
 namespace Errandy.Infrastructure.Persistence;
 
-public class ErrandyDbContext : DbContext, IUnitOfWork, IApplicationDbContext
+public class AppDbContext : DbContext, IUnitOfWork, IApplicationDbContext
 {
-    public ErrandyDbContext(
-        DbContextOptions<ErrandyDbContext> options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }

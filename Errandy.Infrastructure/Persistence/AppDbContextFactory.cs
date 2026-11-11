@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace Errandy.Infrastructure.Persistence;
 
-public class ErrandyDbContextFactory : IDesignTimeDbContextFactory<ErrandyDbContext>
+public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
-    public ErrandyDbContext CreateDbContext(string[] args)
+    public AppDbContext CreateDbContext(string[] args)
     {
         var connectionString =
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
@@ -16,10 +16,9 @@ public class ErrandyDbContextFactory : IDesignTimeDbContextFactory<ErrandyDbCont
                 "ConnectionStrings__DefaultConnection environment variable is required for EF design-time operations.");
         }
 
-        var optionsBuilder = new DbContextOptionsBuilder<ErrandyDbContext>();
-
+        var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
 
-        return new ErrandyDbContext(optionsBuilder.Options);
+        return new AppDbContext(optionsBuilder.Options);
     }
 }
