@@ -49,7 +49,7 @@ public class RequestWithdrawalCommandHandler
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUser _currentUser;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly int _holdHours;
+    private readonly int _conflictHoldHours;
 
     public RequestWithdrawalCommandHandler(
         IApplicationDbContext db,
@@ -61,10 +61,10 @@ public class RequestWithdrawalCommandHandler
         _currentUser = currentUser;
         _dateTimeProvider = dateTimeProvider;
 
-        _holdHours = int.TryParse(configuration["Withdrawal:HoldHours"], out var parsedHours)
-         && parsedHours is >= 0 and <= 168
-         ? parsedHours
-         : 24;
+        _conflictHoldHours = int.TryParse(configuration["Withdrawal:HoldHours"], out var parsedHours)
+            && parsedHours is > 0 and <= 168
+            ? parsedHours
+            : 24;
     }
 
     public async Task<Result<WithdrawalRequestDto>> Handle(
@@ -95,10 +95,18 @@ public class RequestWithdrawalCommandHandler
                 ErrorType.Validation);
         }
 
+        // Check if the user is currently involved in any active errand dispute (conflict between customer and runner)
+        var hasActiveConflict = await _db.Errands
+            .AsNoTracking()
+            .AnyAsync(
+                e => e.Status == ErrandStatus.Disputed &&
+                     (e.RunnerId == userId || e.CustomerId == userId),
+                cancellationToken);
+
         var utcNow = _dateTimeProvider.UtcNow;
         var reference = TransactionEntity.GenerateReference("WDR");
 
-        // Immediately debit spendable Balance so funds cannot be double-spent during the 24-hour security hold
+        // Immediately debit spendable Balance so funds cannot be double-spent
         var balanceBefore = wallet.Balance;
         wallet.Debit(roundedAmount);
 
@@ -110,9 +118,13 @@ public class RequestWithdrawalCommandHandler
             Amount = roundedAmount,
             BalanceBefore = balanceBefore,
             BalanceAfter = wallet.Balance,
-            Status = WalletTransactionStatus.Pending,
+            Status = hasActiveConflict
+                ? WalletTransactionStatus.Pending
+                : WalletTransactionStatus.Completed,
             Reference = reference,
-            Description = $"Withdrawal to {request.BankName.Trim()} ({request.AccountNumber.Trim()}) — 24h security hold"
+            Description = hasActiveConflict
+                ? $"Withdrawal to {request.BankName.Trim()} ({request.AccountNumber.Trim()}) — {_conflictHoldHours}h conflict hold (active dispute)"
+                : $"Instant withdrawal to {request.BankName.Trim()} ({request.AccountNumber.Trim()})"
         };
 
         await _db.Transactions.AddAsync(transaction, cancellationToken);
@@ -127,7 +139,8 @@ public class RequestWithdrawalCommandHandler
             accountName: request.AccountName,
             reference: reference,
             requestedAtUtc: utcNow,
-            holdDuration: TimeSpan.FromHours(_holdHours),
+            holdDuration: TimeSpan.FromHours(_conflictHoldHours),
+            applyConflictHold: hasActiveConflict,
             bankCode: request.BankCode);
 
         await _db.WithdrawalRequests.AddAsync(withdrawal, cancellationToken);

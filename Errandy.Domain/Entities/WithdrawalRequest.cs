@@ -4,8 +4,10 @@ using Errandy.Domain.Enums;
 namespace Errandy.Domain.Entities;
 
 /// <summary>
-/// Represents a runner/customer bank withdrawal request subject to a mandatory
-/// 24-hour security hold (EligibleAt = RequestedAt + 24h) before bank payout.
+/// Represents a runner/customer bank withdrawal request.
+/// - Clean accounts (no active disputed errand): Completes immediately (0h hold).
+/// - Accounts involved in an active dispute (ErrandStatus.Disputed): Placed on a 24-hour
+///   security hold (PendingHold, EligibleAt = RequestedAt + 24h) for admin review.
 /// </summary>
 public class WithdrawalRequest : BaseEntity
 {
@@ -31,6 +33,11 @@ public class WithdrawalRequest : BaseEntity
     public Guid? ProcessedByAdminId { get; private set; }
     public string? AdminNote { get; private set; }
 
+    /// <summary>
+    /// True when this withdrawal was placed under a 24-hour conflict hold due to an active dispute.
+    /// </summary>
+    public bool IsConflictHold => EligibleAt > RequestedAt;
+
     private WithdrawalRequest() { }
 
     public static WithdrawalRequest Create(
@@ -44,6 +51,7 @@ public class WithdrawalRequest : BaseEntity
         string reference,
         DateTime requestedAtUtc,
         TimeSpan holdDuration,
+        bool applyConflictHold,
         string? bankCode = null)
     {
         if (userId == Guid.Empty)
@@ -69,6 +77,27 @@ public class WithdrawalRequest : BaseEntity
 
         var rounded = decimal.Round(amount, 2, MidpointRounding.ToEven);
 
+        if (applyConflictHold)
+        {
+            return new WithdrawalRequest
+            {
+                UserId = userId,
+                WalletId = walletId,
+                TransactionId = transactionId,
+                Amount = rounded,
+                Currency = "NGN",
+                BankName = bankName.Trim(),
+                BankCode = string.IsNullOrWhiteSpace(bankCode) ? null : bankCode.Trim(),
+                AccountNumber = accountNumber.Trim(),
+                AccountName = accountName.Trim(),
+                Status = WithdrawalStatus.PendingHold,
+                Reference = reference.Trim(),
+                RequestedAt = requestedAtUtc,
+                EligibleAt = requestedAtUtc.Add(holdDuration),
+                AdminNote = "24-hour security hold applied due to active errand dispute."
+            };
+        }
+
         return new WithdrawalRequest
         {
             UserId = userId,
@@ -80,10 +109,12 @@ public class WithdrawalRequest : BaseEntity
             BankCode = string.IsNullOrWhiteSpace(bankCode) ? null : bankCode.Trim(),
             AccountNumber = accountNumber.Trim(),
             AccountName = accountName.Trim(),
-            Status = WithdrawalStatus.PendingHold,
+            Status = WithdrawalStatus.Completed,
             Reference = reference.Trim(),
             RequestedAt = requestedAtUtc,
-            EligibleAt = requestedAtUtc.Add(holdDuration)
+            EligibleAt = requestedAtUtc,
+            ProcessedAt = requestedAtUtc,
+            AdminNote = "Instant withdrawal — no active errand conflict."
         };
     }
 
@@ -104,7 +135,7 @@ public class WithdrawalRequest : BaseEntity
         EnsurePending(nameof(CancelByUser));
         Status = WithdrawalStatus.Cancelled;
         ProcessedAt = utcNow;
-        AdminNote = "Cancelled by user during hold period.";
+        AdminNote = "Cancelled by user during conflict hold period.";
         UpdatedAt = utcNow;
     }
 

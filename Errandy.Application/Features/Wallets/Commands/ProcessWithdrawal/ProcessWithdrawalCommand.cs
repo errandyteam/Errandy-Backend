@@ -81,14 +81,23 @@ public class ProcessWithdrawalCommandHandler
 
         if (request.Approve)
         {
-            if (!withdrawal.IsMatured(utcNow) && !request.ForceBypassHold)
+            // Check whether the user still has an active dispute right now
+            var stillHasActiveConflict = await _db.Errands
+                .AsNoTracking()
+                .AnyAsync(
+                    e => e.Status == ErrandStatus.Disputed &&
+                         (e.RunnerId == withdrawal.UserId || e.CustomerId == withdrawal.UserId),
+                    cancellationToken);
+
+            // If the dispute is still open AND the 24h hold hasn't matured yet, require ForceBypassHold
+            if (stillHasActiveConflict && !withdrawal.IsMatured(utcNow) && !request.ForceBypassHold)
             {
                 return Result<WithdrawalRequestDto>.Failure(
-                    $"Withdrawal is still in its 24-hour security hold until {withdrawal.EligibleAt:O}. Pass forceBypassHold=true to override.",
+                    $"User still has an active errand dispute and the 24-hour hold lasts until {withdrawal.EligibleAt:O}. Pass forceBypassHold=true to override.",
                     ErrorType.Validation);
             }
 
-            withdrawal.Complete(utcNow, adminId, request.Note);
+            withdrawal.Complete(utcNow, adminId, request.Note ?? "Approved by administrator.");
 
             if (originalTx is not null)
             {
