@@ -24,8 +24,40 @@ public class RunnerProfile : BaseEntity
     public decimal CompletionRate { get; set; } = 0m;
  
     public decimal CancellationRate { get; set; } = 0m;
+
+    public RunnerLevel Level { get; set; } = RunnerLevel.Beginner;
+
+    public string? GovernmentIdType { get; set; }
+    public string? GovernmentIdNumber { get; set; }
+    public string? GovernmentIdImageUrl { get; set; }
+
+    public string? SelfieImageUrl { get; set; }
+
+    public string? BankName { get; set; }
+    public string? BankAccountNumber { get; set; }
+    public string? BankAccountName { get; set; }
+    public string? Bvn { get; set; }
+
+    public VerificationStatus PhoneVerificationStatus { get; set; } = VerificationStatus.NotSubmitted;
+    public VerificationStatus GovernmentIdVerificationStatus { get; set; } = VerificationStatus.NotSubmitted;
+    public VerificationStatus SelfieVerificationStatus { get; set; } = VerificationStatus.NotSubmitted;
+    public VerificationStatus BankVerificationStatus { get; set; } = VerificationStatus.NotSubmitted;
+
+    public bool HasSubmittedDocuments =>
+     !string.IsNullOrWhiteSpace(DocumentType) &&
+     !string.IsNullOrWhiteSpace(DocumentNumber) &&
+     !string.IsNullOrWhiteSpace(DocumentImageUrl);
+
+    public bool IsEligibleToAcceptErrands =>
+        KycStatus == KycStatus.Approved &&
+        HasSubmittedDocuments;
+
     public void Approve(Guid adminId)
     {
+        if (!HasSubmittedDocuments)
+            throw new InvalidOperationException(
+                "Cannot approve a runner profile that has not submitted KYC documents.");
+
         KycStatus = KycStatus.Approved;
         RejectionReason = null;
         ReviewedByAdminId = adminId;

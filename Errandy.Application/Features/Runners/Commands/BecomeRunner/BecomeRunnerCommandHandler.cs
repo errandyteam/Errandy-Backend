@@ -38,7 +38,7 @@ public class BecomeRunnerCommandHandler
         var profile = new RunnerProfile
         {
             UserId = user.Id,
-            KycStatus = KycStatus.Pending
+            KycStatus = KycStatus.NotSubmitted
         };
         user.Role = UserRole.Runner;
         _users.Update(user);

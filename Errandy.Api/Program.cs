@@ -9,9 +9,11 @@ using Errandy.Api.TestDoubles;
 using Errandy.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+Console.WriteLine($">>> Using DB: {builder.Configuration.GetConnectionString("DefaultConnection")}");
 
 // ----- Layer registrations -----
 builder.Services.AddApplication();
+builder.Services.AddHttpClient();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 
