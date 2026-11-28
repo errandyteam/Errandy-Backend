@@ -15,6 +15,9 @@ public interface IApplicationDbContext
     DbSet<TransactionEntity> Transactions { get; }
     DbSet<EscrowHold> EscrowHolds { get; }
     DbSet<WithdrawalRequest> WithdrawalRequests { get; }
+    DbSet<PaymentIntent> PaymentIntents { get; }
+    DbSet<PaymentReconciliationAttempt> PaymentReconciliationAttempts { get; }
+    DbSet<AutomaticPaymentCheck> AutomaticPaymentChecks { get; }
 
     // Errand / Chat / Dispute
     DbSet<Errand> Errands { get; }

@@ -13,6 +13,10 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         builder.HasKey(w => w.Id);
 
+        // Npgsql maps a uint row-version property to PostgreSQL's xmin system column.
+        // EF includes its original value when saving a tracked wallet update.
+        builder.Property<uint>("Version").IsRowVersion();
+
         builder.Property(w => w.Balance)
             .HasPrecision(18, 2)
             .IsRequired();

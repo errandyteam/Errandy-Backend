@@ -30,6 +30,9 @@ public class InMemoryApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<TransactionEntity> Transactions => Set<TransactionEntity>();
     public DbSet<EscrowHold> EscrowHolds => Set<EscrowHold>();
     public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+    public DbSet<PaymentIntent> PaymentIntents => Set<PaymentIntent>();
+    public DbSet<PaymentReconciliationAttempt> PaymentReconciliationAttempts => Set<PaymentReconciliationAttempt>();
+    public DbSet<AutomaticPaymentCheck> AutomaticPaymentChecks => Set<AutomaticPaymentCheck>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

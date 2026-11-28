@@ -125,24 +125,27 @@ public class Errand
         Status = ErrandStatus.Created;
     }
 
+
     public void AttachProofAndSubmitForConfirmation(Guid runnerId, Proof proof, decimal finalCost, DateTime utcNow)
     {
         EnsureStatus(ErrandStatus.InProgress, nameof(AttachProofAndSubmitForConfirmation));
         EnsureRunnerOwnership(runnerId);
 
         if (finalCost <= 0)
+            throw new ArgumentException("FinalCost must be greater than zero.", nameof(finalCost));
+
         if (finalCost > EstimatedCost)
-                throw new ArgumentException("FinalCost cannot be more than the agreed cost. A price adjustment must be approved first.", nameof(finalCost));
+            throw new ArgumentException("FinalCost cannot be more than the agreed cost. A price adjustment must be approved first.", nameof(finalCost));
 
         // The proof states the final cost, so a price request still waiting for the customer is moot.
         ClearPendingProposal();
-        throw new ArgumentException("FinalCost must be greater than zero.", nameof(finalCost));
 
         Proof = proof;
         FinalCost = finalCost;
         Status = ErrandStatus.PendingConfirmation;
         PendingConfirmationAt = utcNow;
     }
+
 
     public void ConfirmCompletion(DateTime utcNow)
     {

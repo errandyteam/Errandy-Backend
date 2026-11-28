@@ -64,6 +64,12 @@ public class ProcessWithdrawalCommandHandler
             return Result<WithdrawalRequestDto>.Failure(
                 "Only administrators can process withdrawal requests.", ErrorType.Forbidden);
 
+        // There is no confirmed bank payout integration yet. Never represent an
+        // approval as a completed payout until that integration is in place.
+        if (request.Approve)
+            return Result<WithdrawalRequestDto>.Failure(
+                "Withdrawal approval is disabled until confirmed payout handling is available.", ErrorType.Conflict);
+
         var withdrawal = await _db.WithdrawalRequests
             .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
 
@@ -81,14 +87,23 @@ public class ProcessWithdrawalCommandHandler
 
         if (request.Approve)
         {
-            if (!withdrawal.IsMatured(utcNow) && !request.ForceBypassHold)
+            // Check whether the user still has an active dispute right now
+            var stillHasActiveConflict = await _db.Errands
+                .AsNoTracking()
+                .AnyAsync(
+                    e => e.Status == ErrandStatus.Disputed &&
+                         (e.RunnerId == withdrawal.UserId || e.CustomerId == withdrawal.UserId),
+                    cancellationToken);
+
+            // If the dispute is still open AND the 24h hold hasn't matured yet, require ForceBypassHold
+            if (stillHasActiveConflict && !withdrawal.IsMatured(utcNow) && !request.ForceBypassHold)
             {
                 return Result<WithdrawalRequestDto>.Failure(
-                    $"Withdrawal is still in its 24-hour security hold until {withdrawal.EligibleAt:O}. Pass forceBypassHold=true to override.",
+                    $"User still has an active errand dispute and the 24-hour hold lasts until {withdrawal.EligibleAt:O}. Pass forceBypassHold=true to override.",
                     ErrorType.Validation);
             }
 
-            withdrawal.Complete(utcNow, adminId, request.Note);
+            withdrawal.Complete(utcNow, adminId, request.Note ?? "Approved by administrator.");
 
             if (originalTx is not null)
             {

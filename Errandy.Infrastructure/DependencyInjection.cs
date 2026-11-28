@@ -1,5 +1,7 @@
 ﻿using Errandy.Application.Common.Interfaces;
+using Errandy.Application.Features.Payments.Services;
 using Errandy.Application.Interfaces;
+using Errandy.Infrastructure.Payments;
 using Errandy.Infrastructure.Persistence;
 using Errandy.Infrastructure.Persistence.Repositories;
 using Errandy.Infrastructure.Security;
@@ -7,6 +9,7 @@ using Errandy.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http;
 
 namespace Errandy.Infrastructure;
 
@@ -28,6 +31,28 @@ public static class DependencyInjection
             else
                 options.UseNpgsql(connectionString);
         });
+
+        //HTTP Client for external API calls (I used a custom named client here, but you can also use the default HttpClient)
+        services.AddHttpClient("ExternalApi", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false
+        });
+
+        services.AddScoped<ICustomService, CustomService>();
+
+        //Payment verification service for handling payment verification logic
+        services.AddScoped<IPaymentVerificationService, PaymentVerificationService>();
+
+        //Paystack client for payment gateway integration
+        services.Configure<PaystackSettings>(
+        configuration.GetSection(PaystackSettings.SectionName));
+
+        services.AddScoped<IPaymentGateway, PaystackPaymentGateway>();
+
 
         // ----- Shared database context -----
         services.AddScoped<IApplicationDbContext>(
@@ -56,6 +81,8 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
+
+
 
         return services;
     }

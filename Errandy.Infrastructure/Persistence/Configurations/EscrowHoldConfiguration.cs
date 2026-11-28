@@ -12,6 +12,9 @@ public class EscrowHoldConfiguration : IEntityTypeConfiguration<EscrowHold>
 
         builder.HasKey(h => h.Id);
 
+        // Npgsql maps a uint row version to PostgreSQL's xmin system column.
+        builder.Property<uint>("Version").IsRowVersion();
+
         builder.Property(h => h.InitialLockedAmount)
             .HasColumnType("decimal(18,2)")
             .IsRequired();

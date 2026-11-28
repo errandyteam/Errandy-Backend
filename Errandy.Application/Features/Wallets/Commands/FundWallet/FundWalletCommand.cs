@@ -47,62 +47,14 @@ public class FundWalletCommandHandler
         _uow = uow;
     }
 
-    public async Task<Result<TransactionDto>> Handle(
+    public Task<Result<TransactionDto>> Handle(
         FundWalletCommand request,
         CancellationToken cancellationToken)
     {
-        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
-            return Result<TransactionDto>.Failure("User is not authenticated.", ErrorType.Unauthorized);
-
-        var userId = _currentUser.UserId.Value;
-        var reference = string.IsNullOrWhiteSpace(request.Reference)
-            ? TransactionEntity.GenerateReference("FND")
-            : request.Reference.Trim();
-
-        // Prevent duplicate transaction reference (idempotency check)
-        var existingTx = await _transactions.GetByReferenceAsync(reference, cancellationToken);
-        if (existingTx is not null)
-            return Result<TransactionDto>.Failure(
-                $"A transaction with reference '{reference}' already exists.", ErrorType.Conflict);
-
-        var wallet = await _wallets.GetByUserIdAsync(userId, cancellationToken);
-        if (wallet is null)
-        {
-            wallet = new Wallet
-            {
-                UserId = userId,
-                Balance = 0m,
-                LockedBalance = 0m,
-                Currency = "NGN",
-                IsActive = true
-            };
-            await _wallets.AddAsync(wallet, cancellationToken);
-        }
-
-        if (!wallet.IsActive)
-            return Result<TransactionDto>.Failure("Wallet is currently inactive.", ErrorType.Forbidden);
-
-        var balanceBefore = wallet.Balance;
-        wallet.Credit(request.Amount);
-
-        var transaction = new TransactionEntity
-        {
-            WalletId = wallet.Id,
-            Type = TransactionType.Credit,
-            Category = TransactionCategory.Funding,
-            Amount = decimal.Round(request.Amount, 2, MidpointRounding.ToEven),
-            BalanceBefore = balanceBefore,
-            BalanceAfter = wallet.Balance,
-            Status = WalletTransactionStatus.Completed,
-            Reference = reference,
-            Description = string.IsNullOrWhiteSpace(request.Description)
-                ? "Wallet funding"
-                : request.Description.Trim()
-        };
-
-        await _transactions.AddAsync(transaction, cancellationToken);
-        await _uow.SaveChangesAsync(cancellationToken);
-
-        return Result<TransactionDto>.Success(TransactionDto.FromEntity(transaction));
+        // Do not credit wallets using a caller-supplied amount or reference.
+        // Wallet funding must pass through verified gateway settlement.
+        return Task.FromResult(Result<TransactionDto>.Failure(
+            "Direct wallet funding is disabled. Use verified payment funding when it becomes available.",
+            ErrorType.Forbidden));
     }
 }

@@ -53,38 +53,10 @@ public class ProcessMaturedWithdrawalsCommandHandler
                 "Only administrators can trigger matured withdrawal batch processing.",
                 ErrorType.Forbidden);
 
-        var utcNow = _dateTimeProvider.UtcNow;
-
-        var matured = await _db.WithdrawalRequests
-            .Where(w => w.Status == WithdrawalStatus.PendingHold && w.EligibleAt <= utcNow)
-            .ToListAsync(cancellationToken);
-
-        if (matured.Count == 0)
-        {
-            return Result<MaturedWithdrawalsBatchResultDto>.Success(
-                new MaturedWithdrawalsBatchResultDto(0, 0m, utcNow));
-        }
-
-        var txIds = matured.Select(w => w.TransactionId).ToList();
-        var transactions = await _db.Transactions
-            .Where(t => txIds.Contains(t.Id))
-            .ToDictionaryAsync(t => t.Id, cancellationToken);
-
-        decimal totalAmount = 0m;
-        foreach (var withdrawal in matured)
-        {
-            withdrawal.Complete(utcNow, adminId, "Processed after 24-hour hold maturity.");
-            totalAmount += withdrawal.Amount;
-
-            if (transactions.TryGetValue(withdrawal.TransactionId, out var tx))
-            {
-                tx.Status = WalletTransactionStatus.Completed;
-            }
-        }
-
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return Result<MaturedWithdrawalsBatchResultDto>.Success(
-            new MaturedWithdrawalsBatchResultDto(matured.Count, totalAmount, utcNow));
+        // Maturity is not proof of a bank transfer. Remain fail-closed until
+        // confirmed payout handling and legacy reconciliation are implemented.
+        return Result<MaturedWithdrawalsBatchResultDto>.Failure(
+            "Batch withdrawal completion is disabled until confirmed payout handling is available.",
+            ErrorType.Conflict);
     }
 }
