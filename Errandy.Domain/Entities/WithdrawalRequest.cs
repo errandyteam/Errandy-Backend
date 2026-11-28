@@ -4,8 +4,10 @@ using Errandy.Domain.Enums;
 namespace Errandy.Domain.Entities;
 
 /// <summary>
-/// Represents a runner/customer bank withdrawal request subject to a mandatory
-/// 24-hour security hold (EligibleAt = RequestedAt + 24h) before bank payout.
+/// Represents a runner/customer bank withdrawal request.
+/// - Clean accounts (no active disputed errand): Completes immediately (0h hold).
+/// - Accounts involved in an active dispute (ErrandStatus.Disputed): Placed on a 24-hour
+///   security hold (PendingHold, EligibleAt = RequestedAt + 24h) for admin review.
 /// </summary>
 public class WithdrawalRequest : BaseEntity
 {
@@ -30,6 +32,11 @@ public class WithdrawalRequest : BaseEntity
 
     public Guid? ProcessedByAdminId { get; private set; }
     public string? AdminNote { get; private set; }
+
+    /// <summary>
+    /// True when this withdrawal was placed under a 24-hour conflict hold due to an active dispute.
+    /// </summary>
+    public bool IsConflictHold => EligibleAt > RequestedAt;
 
     private WithdrawalRequest() { }
 
@@ -87,24 +94,49 @@ public class WithdrawalRequest : BaseEntity
         };
     }
 
-    public bool IsMatured(DateTime utcNow) => utcNow >= EligibleAt;
+    // Not wired to the request handler. The caller must establish eligibility;
+    // this factory does not perform a dispute check or initiate a bank transfer.
+    public static WithdrawalRequest CreatePendingPayout(
+        Guid userId,
+        Guid walletId,
+        Guid transactionId,
+        decimal amount,
+        string bankName,
+        string accountNumber,
+        string accountName,
+        string reference,
+        DateTime requestedAtUtc,
+        string? bankCode = null)
+    {
+        var withdrawal = Create(
+            userId, walletId, transactionId, amount, bankName, accountNumber,
+            accountName, reference, requestedAtUtc, TimeSpan.Zero, bankCode);
+        withdrawal.Status = WithdrawalStatus.PendingPayout;
+        return withdrawal;
+    }
+
+    // Preserve existing behavior for legacy statuses. PendingPayout has no
+    // security hold to mature, despite its EligibleAt being the request time.
+    public bool IsMatured(DateTime utcNow) =>
+        Status != WithdrawalStatus.PendingPayout && utcNow >= EligibleAt;
 
     public void Complete(DateTime utcNow, Guid? adminId = null, string? note = null)
     {
-        EnsurePending(nameof(Complete));
-        Status = WithdrawalStatus.Completed;
-        ProcessedAt = utcNow;
-        ProcessedByAdminId = adminId;
-        AdminNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
-        UpdatedAt = utcNow;
+        // No payout provider or confirmation mechanism exists yet. A matured
+        // hold or administrator approval does not establish a bank transfer.
+        throw new InvalidOperationException(
+            "Withdrawal completion is disabled until confirmed payout handling is available.");
     }
 
     public void CancelByUser(DateTime utcNow)
     {
         EnsurePending(nameof(CancelByUser));
+        var wasPendingPayout = Status == WithdrawalStatus.PendingPayout;
         Status = WithdrawalStatus.Cancelled;
         ProcessedAt = utcNow;
-        AdminNote = "Cancelled by user during hold period.";
+        AdminNote = wasPendingPayout
+            ? "Cancelled by user while pending payout."
+            : "Cancelled by user during conflict hold period.";
         UpdatedAt = utcNow;
     }
 
@@ -120,7 +152,10 @@ public class WithdrawalRequest : BaseEntity
 
     private void EnsurePending(string action)
     {
-        if (Status != WithdrawalStatus.PendingHold)
+        // PendingPayout is not proof that an external transfer has not started.
+        // Future payout integration must atomically exclude in-flight or unknown
+        // payouts before permitting a refund. Do not use this alone as evidence.
+        if (Status != WithdrawalStatus.PendingHold && Status != WithdrawalStatus.PendingPayout)
             throw new InvalidOperationException(
                 $"Cannot perform '{action}' because withdrawal '{Reference}' is already in '{Status}' status.");
     }

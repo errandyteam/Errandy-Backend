@@ -100,7 +100,7 @@ public record WithdrawalRequestDto(
         w.Reference,
         w.RequestedAt,
         w.EligibleAt,
-        w.IsMatured(utcNow),
+        w.Status != WithdrawalStatus.PendingPayout && w.IsMatured(utcNow),
         w.ProcessedAt,
         w.ProcessedByAdminId,
         w.AdminNote);

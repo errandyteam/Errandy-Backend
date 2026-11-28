@@ -54,6 +54,7 @@ public class EscrowService : IEscrowService
         decimal amount,
         CancellationToken cancellationToken = default)
     {
+        EnsureEscrowOperationsDisabled();
         var roundedAmount = ValidatePositiveAmount(amount, nameof(amount));
 
         var existingHold = await _db.EscrowHolds
@@ -115,6 +116,7 @@ public class EscrowService : IEscrowService
         decimal newAmount,
         CancellationToken cancellationToken = default)
     {
+        EnsureEscrowOperationsDisabled();
         var roundedOld = ValidatePositiveAmount(oldAmount, nameof(oldAmount));
         var roundedNew = ValidatePositiveAmount(newAmount, nameof(newAmount));
 
@@ -211,6 +213,7 @@ public class EscrowService : IEscrowService
         decimal finalAmount,
         CancellationToken cancellationToken = default)
     {
+        EnsureEscrowOperationsDisabled();
         var roundedFinal = ValidatePositiveAmount(finalAmount, nameof(finalAmount));
         var utcNow = _dateTimeProvider.UtcNow;
 
@@ -342,6 +345,7 @@ public class EscrowService : IEscrowService
         decimal amount,
         CancellationToken cancellationToken = default)
     {
+        EnsureEscrowOperationsDisabled();
         var utcNow = _dateTimeProvider.UtcNow;
 
         var hold = await _db.EscrowHolds
@@ -412,6 +416,7 @@ public class EscrowService : IEscrowService
         decimal releaseToRunnerAmount,
         CancellationToken cancellationToken = default)
     {
+        EnsureEscrowOperationsDisabled();
         if (refundAmount < 0 || releaseToRunnerAmount < 0)
         {
             throw new ValidationException(new[]
@@ -650,6 +655,14 @@ public class EscrowService : IEscrowService
         };
         await _db.Wallets.AddAsync(wallet, ct);
         return wallet;
+    }
+
+    // Temporary fail-closed guard. Do not remove until escrow conservation,
+    // concurrency, transaction boundaries, and rollout have been reviewed.
+    private static void EnsureEscrowOperationsDisabled()
+    {
+        throw new InvalidOperationException(
+            "Escrow financial operations are temporarily disabled pending safety review.");
     }
 
     private static decimal ValidatePositiveAmount(decimal amount, string paramName)

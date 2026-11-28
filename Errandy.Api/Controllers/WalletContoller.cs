@@ -15,6 +15,7 @@ using Errandy.Application.Features.Wallets.Queries.GetWalletTransactions;
 using Errandy.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Errandy.Api.Controllers;
 
@@ -70,7 +71,10 @@ public class WalletController : ApiControllerBase
         return HandleResult(await Mediator.Send(command, ct));
     }
 
-    /// <summary>Initiates a bank withdrawal subject to a 24-hour security hold (immediately debits spendable balance).</summary>
+    /// <summary>
+    /// Initiates a bank withdrawal. Completes immediately when the user has no active errand conflict;
+    /// applies a 24-hour security hold (PendingHold) only when the user has an open Disputed errand.
+    /// </summary>
     [HttpPost("withdraw")]
     [ProducesResponseType(typeof(WithdrawalRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -109,9 +113,17 @@ public class WalletController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CancelWithdrawal(Guid withdrawalId, CancellationToken ct)
     {
-        return HandleResult(await Mediator.Send(new CancelWithdrawalCommand(withdrawalId), ct));
+        try
+        {
+            return HandleResult(await Mediator.Send(new CancelWithdrawalCommand(withdrawalId), ct));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return WithdrawalConcurrencyConflict();
+        }
     }
 
     /// <summary>Admin-only: Lists platform withdrawal requests (filterable by status and 24h maturity).</summary>
@@ -129,12 +141,13 @@ public class WalletController : ApiControllerBase
             new GetPendingWithdrawalsQuery(status, maturedOnly, page, pageSize), ct));
     }
 
-    /// <summary>Admin-only: Approves (completes) or rejects (refunds) a specific withdrawal request.</summary>
+    /// <summary>Admin-only: Processes a withdrawal. Approval is currently disabled.</summary>
     [HttpPost("admin/withdrawals/{withdrawalId:guid}/process")]
     [ProducesResponseType(typeof(WithdrawalRequestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ProcessWithdrawal(
         Guid withdrawalId,
         [FromBody] ProcessWithdrawalRequest request,
@@ -146,8 +159,24 @@ public class WalletController : ApiControllerBase
             request.Note,
             request.ForceBypassHold);
 
-        return HandleResult(await Mediator.Send(command, ct));
+        try
+        {
+            return HandleResult(await Mediator.Send(command, ct));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return WithdrawalConcurrencyConflict();
+        }
     }
+
+    private IActionResult WithdrawalConcurrencyConflict() => StatusCode(
+        StatusCodes.Status409Conflict,
+        new ProblemDetails
+        {
+            Title = "Conflict",
+            Status = StatusCodes.Status409Conflict,
+            Detail = "The withdrawal or wallet changed during processing. Refresh their current state before taking further action."
+        });
 
     /// <summary>Admin-only: Batch-settles all pending withdrawals whose 24-hour hold window has elapsed.</summary>
     [HttpPost("admin/withdrawals/process-matured")]

@@ -22,6 +22,68 @@ namespace Errandy.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Errandy.Domain.Entities.AutomaticPaymentCheck", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptsStarted")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastFinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastResult")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTime?>("LastStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LeaseToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("MaximumAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PaymentIntentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentIntentId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "LeaseExpiresAt", "Id");
+
+                    b.HasIndex("Status", "NextAttemptAt", "Id");
+
+                    b.ToTable("AutomaticPaymentChecks", (string)null);
+                });
+
             modelBuilder.Entity("Errandy.Domain.Entities.Dispute", b =>
                 {
                     b.Property<Guid>("Id")
@@ -255,6 +317,140 @@ namespace Errandy.Infrastructure.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages", (string)null);
+                });
+
+            modelBuilder.Entity("Errandy.Domain.Entities.PaymentIntent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessCode")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("AuthorizationUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("GatewayResponse")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("PaymentIntents", (string)null);
+                });
+
+            modelBuilder.Entity("Errandy.Domain.Entities.PaymentReconciliationAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdminUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PaymentIntentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResultCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminUserId", "RequestedAt");
+
+                    b.HasIndex("Outcome", "RequestedAt");
+
+                    b.HasIndex("PaymentIntentId", "RequestedAt");
+
+                    b.ToTable("PaymentReconciliationAttempts", (string)null);
                 });
 
             modelBuilder.Entity("Errandy.Domain.Entities.Proof", b =>
@@ -496,12 +692,113 @@ namespace Errandy.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
                         .IsUnique();
 
                     b.ToTable("Wallets", (string)null);
+                });
+
+            modelBuilder.Entity("Errandy.Domain.Entities.WithdrawalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("NGN");
+
+                    b.Property<DateTime>("EligibleAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ProcessedByAdminId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reference")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "EligibleAt");
+
+                    b.HasIndex("UserId", "RequestedAt");
+
+                    b.ToTable("WithdrawalRequests", (string)null);
+                });
+
+            modelBuilder.Entity("Errandy.Domain.Entities.AutomaticPaymentCheck", b =>
+                {
+                    b.HasOne("Errandy.Domain.Entities.PaymentIntent", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentIntentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Errandy.Domain.Entities.Dispute", b =>
@@ -519,6 +816,21 @@ namespace Errandy.Infrastructure.Migrations
                         .WithMany("Messages")
                         .HasForeignKey("ErrandId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Errandy.Domain.Entities.PaymentReconciliationAttempt", b =>
+                {
+                    b.HasOne("Errandy.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AdminUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Errandy.Domain.Entities.PaymentIntent", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentIntentId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

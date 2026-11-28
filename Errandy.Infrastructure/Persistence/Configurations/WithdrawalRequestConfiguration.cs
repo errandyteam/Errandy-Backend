@@ -11,6 +11,8 @@ public class WithdrawalRequestConfiguration : IEntityTypeConfiguration<Withdrawa
         builder.ToTable("WithdrawalRequests");
 
         builder.HasKey(w => w.Id);
+        // Npgsql maps a uint row version to PostgreSQL's xmin system column.
+        builder.Property<uint>("Version").IsRowVersion();
 
         builder.Property(w => w.Amount)
             .HasColumnType("decimal(18,2)")
