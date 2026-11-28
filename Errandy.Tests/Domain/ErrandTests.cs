@@ -73,7 +73,8 @@ public class ErrandTests
         errand.Accept(RunnerId, UtcNow);
 
         var impostor = Guid.NewGuid();
-        Assert.Throws<UnauthorizedAccessException>(() => errand.Start(impostor, UtcNow));
+        Assert.Throws<ForbiddenDomainException>(() =>
+    errand.Start(impostor, UtcNow));
     }
 
     [Fact]
@@ -122,7 +123,7 @@ public class ErrandTests
         var errand = CreateTestErrand();
         var stranger = Guid.NewGuid();
 
-        Assert.Throws<UnauthorizedAccessException>(() =>
+        Assert.Throws<ForbiddenDomainException>(() =>
             errand.AddMessage(stranger, "hello", UtcNow));
     }
 
