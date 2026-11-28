@@ -90,4 +90,22 @@ public class Dispute
         Status = DisputeStatus.Resolved;
         ResolvedAt = utcNow;
     }
+
+    /// <summary>
+    /// Admin dismisses the dispute without a money decision (the claim was not valid).
+    /// A reason is mandatory so the decision can be reviewed later.
+    /// </summary>
+    public void Reject(Guid adminId, string notes, DateTime utcNow)
+    {
+        if (Status is DisputeStatus.Resolved or DisputeStatus.Rejected)
+            throw new InvalidOperationException("Dispute has already been closed.");
+
+        if (string.IsNullOrWhiteSpace(notes))
+            throw new ArgumentException("A reason is required when rejecting a dispute.", nameof(notes));
+
+        ResolvedByAdminId = adminId;
+        ResolutionNotes = notes.Trim();
+        Status = DisputeStatus.Rejected;
+        ResolvedAt = utcNow;
+    }
 }

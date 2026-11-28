@@ -1,11 +1,12 @@
 using Errandy.Application.Common.Exceptions;
+using Errandy.Application.Common.Utils;
 using Errandy.Application.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Errandy.Application.Features.Chat.SendMessage;
 
-public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Guid>
+public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, SendMessageResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -16,7 +17,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Gui
         _dateTimeProvider = dateTimeProvider;
     }
 
-    public async Task<Guid> Handle(SendMessageCommand request, CancellationToken cancellationToken)
+    public async Task<SendMessageResult> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
         var errand = await _context.Errands
             .FirstOrDefaultAsync(e => e.Id == request.ErrandId, cancellationToken);
@@ -24,13 +25,16 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Gui
         if (errand is null)
             throw new NotFoundException(nameof(Domain.Entities.Errand), request.ErrandId);
 
-        // errand.AddMessage() enforces sender must be the customer or
-        // assigned runner, and rejects messages on cancelled errands.
-        var message = errand.AddMessage(request.SenderId, request.Content, _dateTimeProvider.UtcNow);
+        // Phone numbers are hidden BEFORE saving, so they never reach the
+        // database or the other person.
+        var safeContent = PhoneNumberMasker.Mask(request.Content, out var wasMasked);
+
+        // errand.AddMessage() checks the sender is the customer or the assigned runner.
+        var message = errand.AddMessage(request.SenderId, safeContent, _dateTimeProvider.UtcNow);
 
         _context.Messages.Add(message);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return message.Id;
+        return new SendMessageResult(message.Id, wasMasked);
     }
 }

@@ -10,6 +10,7 @@ public class ErrandConfiguration : IEntityTypeConfiguration<Errand>
     {
         builder.ToTable("Errands");
         builder.HasKey(e => e.Id);
+        builder.Property(e => e.Version).IsRowVersion();
 
         builder.Property(e => e.Description).IsRequired().HasMaxLength(1000);
         builder.Property(e => e.EstimatedCost).HasColumnType("decimal(18,2)");

@@ -36,16 +36,28 @@ public class AdminForceCompleteErrandCommandHandler : IRequestHandler<AdminForce
         if (errand.RunnerId is null)
             throw new InvalidOperationException("Cannot force-complete an errand with no assigned runner.");
 
-        var utcNow = _dateTimeProvider.UtcNow;
-        errand.AdminForceComplete(utcNow);
+        var runnerId = errand.RunnerId.Value;
+
+        errand.AdminForceComplete(_dateTimeProvider.UtcNow);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Audit trail — this bypasses the customer's normal approval, so it
-        // must always be traceable to who did it and why.
+        var amount = errand.FinalCost!.Value;
+
+        // Audit trail: this bypasses the customer's normal approval, so it must always be
+        // traceable to who did it and why.
         _logger.LogWarning(
             "Admin {AdminId} force-completed errand {ErrandId}. Reason: {Reason}",
             request.AdminId, errand.Id, request.Reason);
 
-        await _escrowService.ReleaseFundsAsync(errand.Id, errand.RunnerId.Value, errand.FinalCost!.Value, cancellationToken);
+        try
+        {
+            await _escrowService.ReleaseFundsAsync(errand.Id, runnerId, amount, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "RECONCILE: errand {ErrandId} was force-completed by admin {AdminId} but release of {Amount} to runner {RunnerId} FAILED.",
+                errand.Id, request.AdminId, amount, runnerId);
+        }
     }
 }

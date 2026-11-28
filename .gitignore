@@ -3,6 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Uploaded proof photos and receipts must never be committed
+**/App_Data/
+
 # User-specific files
 *.rsuser
 *.suo

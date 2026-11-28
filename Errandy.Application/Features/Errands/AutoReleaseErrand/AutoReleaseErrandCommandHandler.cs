@@ -1,4 +1,5 @@
-﻿using Errandy.Application.Interfaces;
+﻿using Errandy.Application.Common.Utils;
+using Errandy.Application.Interfaces;
 using Errandy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -32,28 +33,63 @@ public class AutoReleaseErrandCommandHandler : IRequestHandler<AutoReleaseErrand
 
         if (errand is null)
         {
-            _logger.LogWarning("AutoRelease fired for errand {ErrandId} but it no longer exists.", request.ErrandId);
+            _logger.LogWarning("AutoRelease for errand {ErrandId} skipped: it no longer exists.", request.ErrandId);
             return;
         }
 
-        // No-op if the customer already confirmed, disputed, or the errand
-        // was otherwise resolved before this delayed job ran.
+        // Only an errand still waiting on the customer can be auto-released. Confirmed,
+        // disputed and cancelled errands are left alone.
         if (errand.Status != ErrandStatus.PendingConfirmation)
         {
-            _logger.LogInformation(
-                "AutoRelease skipped for errand {ErrandId} — status is {Status}, not PendingConfirmation.",
-                errand.Id, errand.Status);
+            _logger.LogInformation("AutoRelease for errand {ErrandId} skipped: status is {Status}.", errand.Id, errand.Status);
+            return;
+        }
+
+        var utcNow = _dateTimeProvider.UtcNow;
+
+        // Checked here as well as in the sweep: the window can be restarted (a rejected
+        // dispute) between the sweep's lookup and this command running.
+        if (errand.PendingConfirmationAt is null
+            || errand.PendingConfirmationAt.Value + ErrandTimings.CustomerConfirmationWindow > utcNow)
+        {
+            _logger.LogInformation("AutoRelease for errand {ErrandId} skipped: confirmation window not over yet.", errand.Id);
             return;
         }
 
         if (errand.RunnerId is null || errand.FinalCost is null)
-            return; // shouldn't happen if it reached PendingConfirmation, but guard anyway
+        {
+            _logger.LogWarning("AutoRelease for errand {ErrandId} skipped: no runner or final cost.", errand.Id);
+            return;
+        }
 
-        var utcNow = _dateTimeProvider.UtcNow;
         errand.ConfirmCompletion(utcNow);
-        await _context.SaveChangesAsync(cancellationToken);
 
-        await _escrowService.ReleaseFundsAsync(errand.Id, errand.RunnerId.Value, errand.FinalCost.Value, cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The customer confirmed (or something else changed this errand) at the same moment.
+            // They won the race, so there is nothing for us to do and nothing to pay twice.
+            _logger.LogInformation(
+                "AutoRelease for errand {ErrandId} skipped: it was changed by someone else at the same moment.", errand.Id);
+            return;
+        }
+
+        try
+        {
+            await _escrowService.ReleaseFundsAsync(errand.Id, errand.RunnerId.Value, errand.FinalCost.Value, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The errand is already marked Completed but the payout failed. No person is waiting
+            // on this response, so log everything needed to find and fix it.
+            _logger.LogError(ex,
+                "RECONCILE: errand {ErrandId} auto-completed but release of {Amount} to runner {RunnerId} FAILED.",
+                errand.Id, errand.FinalCost, errand.RunnerId);
+            return;
+        }
 
         _logger.LogInformation("AutoRelease completed for errand {ErrandId}.", errand.Id);
     }

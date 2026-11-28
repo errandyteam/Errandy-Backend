@@ -131,7 +131,12 @@ public class Errand
         EnsureRunnerOwnership(runnerId);
 
         if (finalCost <= 0)
-            throw new ArgumentException("FinalCost must be greater than zero.", nameof(finalCost));
+        if (finalCost > EstimatedCost)
+                throw new ArgumentException("FinalCost cannot be more than the agreed cost. A price adjustment must be approved first.", nameof(finalCost));
+
+        // The proof states the final cost, so a price request still waiting for the customer is moot.
+        ClearPendingProposal();
+        throw new ArgumentException("FinalCost must be greater than zero.", nameof(finalCost));
 
         Proof = proof;
         FinalCost = finalCost;
@@ -185,6 +190,31 @@ public class Errand
         }
     }
 
+    /// <summary>
+    /// Called when an admin rejects a dispute. The errand goes back to where it was
+    /// before the dispute: PendingConfirmation if proof had been uploaded, otherwise InProgress.
+    /// </summary>
+    public void ReopenAfterDisputeRejected()
+    {
+        if (Status != ErrandStatus.Disputed)
+            throw new InvalidErrandStateException(Status, nameof(ReopenAfterDisputeRejected));
+
+        Status = PendingConfirmationAt.HasValue
+            ? ErrandStatus.PendingConfirmation
+            : ErrandStatus.InProgress;
+    }
+
+    /// <summary>
+    /// Starts a fresh customer-confirmation window. Used after a rejected dispute: the dispute may
+    /// have lasted longer than the normal window, and without this the errand would be auto-released
+    /// the moment the dispute closed.
+    /// </summary>
+    public void RestartConfirmationWindow(DateTime utcNow)
+    {
+        EnsureStatus(ErrandStatus.PendingConfirmation, nameof(RestartConfirmationWindow));
+        PendingConfirmationAt = utcNow;
+    }
+
     public void Cancel(DateTime utcNow)
     {
         if (Status is ErrandStatus.Completed or ErrandStatus.Cancelled or ErrandStatus.Disputed)
@@ -223,6 +253,12 @@ public class Errand
         ProposedCostReason = reason;
         ProposedCostAt = utcNow;
     }
+
+    /// <summary>
+    /// Stops two people changing the same errand at the same moment. PostgreSQL maintains it
+    /// (the hidden xmin column), so this code never sets it.
+    /// </summary>
+    public uint Version { get; private set; }
 
     public void ApprovePriceAdjustment(DateTime utcNow)
     {

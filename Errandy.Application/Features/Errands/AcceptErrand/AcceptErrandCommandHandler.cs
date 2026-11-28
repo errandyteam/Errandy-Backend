@@ -24,7 +24,12 @@ public class AcceptErrandCommandHandler : IRequestHandler<AcceptErrandCommand>
 
         if (errand is null)
             throw new NotFoundException(nameof(Domain.Entities.Errand), request.ErrandId);
-    
+
+        // A user must never be able to accept an errand they posted themselves
+        // (prevents fake completions, fake ratings and payment manipulation).
+        if (errand.CustomerId == request.RunnerId)
+            throw new ForbiddenAccessException("You cannot accept your own errand.");
+
         var runnerProfile = await _context.RunnerProfiles
             .FirstOrDefaultAsync(rp => rp.UserId == request.RunnerId, cancellationToken);
 

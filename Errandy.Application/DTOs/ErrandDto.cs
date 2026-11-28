@@ -21,6 +21,10 @@ public class ErrandDto
     public DateTime? PendingConfirmationAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public ProofDto? Proof { get; set; }
+    /// <summary>A price change the runner asked for that the customer has not answered yet.</summary>
+    public decimal? ProposedCost { get; set; }
+    public string? ProposedCostReason { get; set; }
+    public DateTime? ProposedCostAt { get; set; }
     public bool IsExactLocation { get; set; }
     public ErrandTimePreference TimePreference { get; set; }
     public bool IsOverdue { get; set; }

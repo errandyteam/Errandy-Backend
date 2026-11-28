@@ -1,12 +1,14 @@
+using Errandy.Api.BackgroundJobs;
 using Errandy.Api.Extensions;
 using Errandy.Api.Middleware;
+using Errandy.Api.TestDoubles;
 using Errandy.Application;
 using Errandy.Application.Common.Interfaces;
+using Errandy.Application.Interfaces;
 using Errandy.Infrastructure;
 using Errandy.Infrastructure.Persistence;
 using Microsoft.OpenApi.Models;
-using Errandy.Api.TestDoubles;
-using Errandy.Application.Interfaces;
+using Errandy.Api.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,10 +17,12 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 
-builder.Services.AddSingleton<IBackgroundJobScheduler, FakeInProcessBackgroundJobScheduler>();
+
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
-
+builder.Services.AddHostedService<ErrandExpiryWorker>();
+builder.Services.AddHostedService<ErrandAutoReleaseWorker>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

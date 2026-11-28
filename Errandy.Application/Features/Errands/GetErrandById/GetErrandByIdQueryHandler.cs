@@ -53,6 +53,9 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
             Status = errand.Status,
             EstimatedCost = errand.EstimatedCost,
             FinalCost = errand.FinalCost,
+            ProposedCost = errand.ProposedCost,
+            ProposedCostReason = errand.ProposedCostReason,
+            ProposedCostAt = errand.ProposedCostAt,
             PickupLatitude = displayLat,
             PickupLongitude = displayLng,
             IsExactLocation = showExactLocation,
@@ -64,14 +67,16 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
             CompletedAt = errand.CompletedAt,
             TimePreference = errand.TimePreference,
             IsOverdue = errand.IsOverdue(DateTime.UtcNow),
+            // Clients get the private download addresses, never the storage keys.
             Proof = errand.Proof is null ? null : new ProofDto
             {
                 Id = errand.Proof.Id,
-                ImageUrl = errand.Proof.ImageUrl,
-                ReceiptUrl = errand.Proof.ReceiptUrl,
+                ImageUrl = $"/api/errands/{errand.Id}/proof/image",
+                ReceiptUrl = string.IsNullOrWhiteSpace(errand.Proof.ReceiptUrl)
+                    ? null
+                    : $"/api/errands/{errand.Id}/proof/receipt",
                 UploadedAt = errand.Proof.UploadedAt
             }
-
         };
     }
 }
