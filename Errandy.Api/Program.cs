@@ -11,9 +11,11 @@ using Microsoft.OpenApi.Models;
 using Errandy.Api.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
+Console.WriteLine($">>> Using DB: {builder.Configuration.GetConnectionString("DefaultConnection")}");
 
 // ----- Layer registrations -----
 builder.Services.AddApplication();
+builder.Services.AddHttpClient();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 

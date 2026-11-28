@@ -106,8 +106,14 @@ public static class TestData
         Errand.Create(customerId ?? Guid.NewGuid(), ErrandCategory.MarketGrocery, "Buy rice and beans",
             cost, 6.6018, 3.3515, ErrandTimePreference.Asap, null, createdAt ?? Now);
 
-    public static RunnerProfile Runner(Guid userId, KycStatus status) =>
-        new() { UserId = userId, KycStatus = status };
+    public static RunnerProfile Runner(Guid userId, KycStatus status, bool withDocuments = true) => new()
+    {
+        UserId = userId,
+        KycStatus = status,
+        DocumentType = withDocuments ? "NIN" : null,
+        DocumentNumber = withDocuments ? "12345678901" : null,
+        DocumentImageUrl = withDocuments ? "kyc/document.jpg" : null
+    };
 
     public static Errand AcceptedErrand(Guid customerId, Guid runnerId)
     {

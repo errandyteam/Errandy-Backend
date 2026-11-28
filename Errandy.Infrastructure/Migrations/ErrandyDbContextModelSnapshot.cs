@@ -494,6 +494,21 @@ namespace Errandy.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BankAccountName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("BankVerificationStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Bvn")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("CancellationRate")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
@@ -517,10 +532,28 @@ namespace Errandy.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("GovernmentIdImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GovernmentIdNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GovernmentIdType")
+                        .HasColumnType("text");
+
+                    b.Property<int>("GovernmentIdVerificationStatus")
+                        .HasColumnType("integer");
+
                     b.Property<string>("KycStatus")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PhoneVerificationStatus")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Rating")
                         .HasPrecision(3, 2)
@@ -535,6 +568,12 @@ namespace Errandy.Infrastructure.Migrations
 
                     b.Property<Guid?>("ReviewedByAdminId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SelfieImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SelfieVerificationStatus")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -637,6 +676,9 @@ namespace Errandy.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()

@@ -2,6 +2,7 @@
 using Errandy.Application.Features.Payments.Services;
 using Errandy.Application.Interfaces;
 using Errandy.Infrastructure.Payments;
+using Errandy.Infrastructure.Kyc.QoreId;
 using Errandy.Infrastructure.Persistence;
 using Errandy.Infrastructure.Persistence.Repositories;
 using Errandy.Infrastructure.Security;
@@ -9,6 +10,8 @@ using Errandy.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Http;
 
 namespace Errandy.Infrastructure;
@@ -68,8 +71,35 @@ public static class DependencyInjection
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+
         // ----- Financial / Escrow Services (Engineer B) -----
         services.AddScoped<IEscrowService, EscrowService>();
+
+        // ----- KYC verification -----
+        services.Configure<QoreIdSettings>(
+            configuration.GetSection(QoreIdSettings.SectionName));
+
+        services.AddScoped<ManualKycVerificationService>();
+
+        services.AddHttpClient<QoreIdKycVerificationService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+
+        services.AddScoped<IKycVerificationService>(sp =>
+        {
+            var kycProvider = (configuration["Kyc:Provider"] ?? "Manual")
+                .Trim()
+                .ToLowerInvariant();
+
+            return kycProvider switch
+            {
+                "qoreid" => sp.GetRequiredService<QoreIdKycVerificationService>(),
+                "manual" => sp.GetRequiredService<ManualKycVerificationService>(),
+                _ => throw new InvalidOperationException(
+                    $"Unknown Kyc:Provider '{kycProvider}'. Use 'Manual' or 'QoreId'.")
+            };
+        });
 
         // ----- Security services -----
         services.Configure<JwtSettings>(

@@ -1,4 +1,5 @@
 ﻿using Errandy.Domain.Entities;
+
 namespace Errandy.Application.Common.DTOs;
 
 public record RunnerProfileDto(
@@ -7,12 +8,15 @@ public record RunnerProfileDto(
     string KycStatus,
     string? DocumentType,
     string? DocumentNumber,
+    string? DocumentImageUrl,
     string? RejectionReason,
     decimal Rating,
     decimal CompletionRate,
     decimal CancellationRate,
     DateTime? ReviewedAt,
-    DateTime CreatedAt)
+    DateTime CreatedAt,
+    bool HasSubmittedDocuments,
+    bool IsEligibleToAcceptErrands)
 {
     public static RunnerProfileDto FromEntity(RunnerProfile p) => new(
         p.Id,
@@ -20,10 +24,13 @@ public record RunnerProfileDto(
         p.KycStatus.ToString(),
         p.DocumentType,
         p.DocumentNumber,
+        p.DocumentImageUrl,
         p.RejectionReason,
         p.Rating,
         p.CompletionRate,
         p.CancellationRate,
         p.ReviewedAt,
-        p.CreatedAt);
+        p.CreatedAt,
+        p.HasSubmittedDocuments,
+        p.IsEligibleToAcceptErrands);
 }

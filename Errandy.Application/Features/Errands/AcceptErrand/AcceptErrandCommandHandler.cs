@@ -1,6 +1,5 @@
 using Errandy.Application.Common.Exceptions;
 using Errandy.Application.Interfaces;
-using Errandy.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,19 +24,14 @@ public class AcceptErrandCommandHandler : IRequestHandler<AcceptErrandCommand>
         if (errand is null)
             throw new NotFoundException(nameof(Domain.Entities.Errand), request.ErrandId);
 
-        // A user must never be able to accept an errand they posted themselves
-        // (prevents fake completions, fake ratings and payment manipulation).
         if (errand.CustomerId == request.RunnerId)
             throw new ForbiddenAccessException("You cannot accept your own errand.");
 
         var runnerProfile = await _context.RunnerProfiles
             .FirstOrDefaultAsync(rp => rp.UserId == request.RunnerId, cancellationToken);
 
-        if (runnerProfile is null)
-            throw new ForbiddenAccessException("No runner profile found for this user. Complete KYC before accepting errands.");
-
-        if (runnerProfile.KycStatus != KycStatus.Approved)
-            throw new ForbiddenAccessException($"Runner is not approved to accept errands (KYC status: {runnerProfile.KycStatus}).");
+        if (runnerProfile is null || !runnerProfile.IsEligibleToAcceptErrands)
+            throw new ForbiddenAccessException("Only runners with approved KYC can accept errands.");
 
         errand.Accept(request.RunnerId, _dateTimeProvider.UtcNow);
 

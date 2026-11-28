@@ -34,7 +34,7 @@ public class RunnerController : ApiControllerBase
         var userId = CurrentUser.UserId;
         if (userId is null) return Unauthorized();
         var command = new SubmitKycCommand(
-            userId.Value, request.DocumentType, request.DocumentNumber, request.DocumentImageUrl);
+            userId.Value, request.DocumentType, request.DocumentNumber, request.DocumentImageUrl, request.SelfieImageUrl); /*Incase of Bvn; request.Bvn, request.BankName, request.BankAccountNumber, request.BankAccountName*/
         return HandleResult(await Mediator.Send(command, ct));
     }
     /// <summary>Lists runner profiles awaiting KYC review. Admin only.</summary>
